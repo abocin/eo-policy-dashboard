@@ -1,0 +1,190 @@
+"""
+pages/results_table.py
+----------------------
+Filtered evidence table with:
+  - Interactive st.dataframe (primary, handles thousands of rows)
+  - Paginated card view — ALL results, 25 per page
+  - Page navigation controls
+"""
+
+from __future__ import annotations
+
+from typing import Any, Dict, List
+
+import pandas as pd
+import streamlit as st
+
+from core.search_engine import SearchResult
+from core.exporters import results_to_dataframe
+
+VALIDATION_COLORS = {
+    "VALID EVIDENCE":  "#00b894",
+    "WEAK EVIDENCE":   "#fdcb6e",
+    "NOT RELEVANT":    "#d63031",
+    "NEEDS REVIEW":    "#74b9ff",
+    "UNSCORED":        "#636e72",
+}
+
+CARDS_PER_PAGE = 25
+
+
+def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
+    st.subheader("Evidence Excerpts")
+
+    if not results:
+        st.info("No results yet. Upload PDFs and click Run Analysis.")
+        return
+
+    try:
+        df = results_to_dataframe(results)
+    except Exception as e:
+        st.error(f"Could not build results table: {e}")
+        return
+
+    # ---- Filters -----------------------------------------------------------
+    with st.expander("🔎 Filters", expanded=True):
+        col1, col2, col3 = st.columns(3)
+        col4, col5 = st.columns(2)
+
+        docs_available = sorted(df["Document"].unique().tolist())
+        selected_docs = col1.multiselect("Document(s)", docs_available,
+                                         default=docs_available)
+
+        themes_available = sorted(df["Theme"].unique().tolist())
+        selected_themes = col2.multiselect("Theme(s)", themes_available,
+                                           default=themes_available)
+
+        cats_available = sorted(df["Validation Category"].unique().tolist())
+        default_cats = [c for c in cats_available
+                        if c not in ("NOT RELEVANT", "UNSCORED")]
+        selected_cats = col3.multiselect("Validation category", cats_available,
+                                         default=default_cats)
+
+        min_score = col4.slider("Minimum final score", 0.0, 1.0, 0.0, 0.01)
+        keyword_filter = col5.text_input("Search in excerpts",
+                                         placeholder="Type to filter…")
+
+    # ---- Apply filters -----------------------------------------------------
+    mask = (
+        df["Document"].isin(selected_docs)
+        & df["Theme"].isin(selected_themes)
+        & df["Validation Category"].isin(selected_cats)
+        & (df["Final Score"] >= min_score)
+    )
+    if keyword_filter.strip():
+        mask &= df["Excerpt"].str.contains(keyword_filter.strip(),
+                                           case=False, na=False)
+
+    filtered = df[mask].sort_values("Final Score", ascending=False).reset_index(drop=True)
+    total = len(filtered)
+
+    st.caption(f"Showing **{total:,}** of {len(df):,} excerpts")
+
+    # ---- Primary view: interactive dataframe -------------------------------
+    display_cols = ["Document", "Page", "Theme", "Final Score",
+                    "Validation Category", "Keyword Hit", "Excerpt"]
+
+    st.dataframe(
+        filtered[display_cols],
+        width="stretch",
+        height=480,
+        column_config={
+            "Final Score": st.column_config.ProgressColumn(
+                "Score", min_value=0, max_value=1, format="%.3f"
+            ),
+            "Excerpt": st.column_config.TextColumn("Excerpt", width="large"),
+            "Keyword Hit": st.column_config.CheckboxColumn("KW"),
+        },
+    )
+
+    st.divider()
+
+    # ---- Paginated card view — ALL results ---------------------------------
+    with st.expander(f"🃏 Card view — all {total:,} results (paginated)", expanded=False):
+        if total == 0:
+            st.info("No results match the current filters.")
+            return
+
+        total_pages = max(1, (total + CARDS_PER_PAGE - 1) // CARDS_PER_PAGE)
+
+        # Page selector — keep in session state so filters don't reset it
+        page_key = "card_page"
+        if page_key not in st.session_state:
+            st.session_state[page_key] = 1
+        # Reset to page 1 if filters change and current page is out of range
+        if st.session_state[page_key] > total_pages:
+            st.session_state[page_key] = 1
+
+        nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([1, 1, 3, 1, 1])
+
+        with nav_col1:
+            if st.button("⏮ First", width="stretch"):
+                st.session_state[page_key] = 1
+        with nav_col2:
+            if st.button("◀ Prev", width="stretch",
+                         disabled=st.session_state[page_key] <= 1):
+                st.session_state[page_key] -= 1
+        with nav_col3:
+            st.markdown(
+                f"<div style='text-align:center; padding-top:0.4rem; color:#aaa;'>"
+                f"Page <strong>{st.session_state[page_key]}</strong> of "
+                f"<strong>{total_pages}</strong> "
+                f"({total:,} total results)</div>",
+                unsafe_allow_html=True,
+            )
+        with nav_col4:
+            if st.button("Next ▶", width="stretch",
+                         disabled=st.session_state[page_key] >= total_pages):
+                st.session_state[page_key] += 1
+        with nav_col5:
+            if st.button("Last ⏭", width="stretch"):
+                st.session_state[page_key] = total_pages
+
+        # Jump to page input
+        jump = st.number_input(
+            "Jump to page", min_value=1, max_value=total_pages,
+            value=st.session_state[page_key], step=1, key="page_jump"
+        )
+        if jump != st.session_state[page_key]:
+            st.session_state[page_key] = int(jump)
+
+        st.divider()
+
+        # Render current page
+        start_idx = (st.session_state[page_key] - 1) * CARDS_PER_PAGE
+        end_idx = min(start_idx + CARDS_PER_PAGE, total)
+        page_df = filtered.iloc[start_idx:end_idx]
+
+        for _, row in page_df.iterrows():
+            color = VALIDATION_COLORS.get(row["Validation Category"], "#636e72")
+            kw_badge = "🔑 keyword" if row["Keyword Hit"] else "🔍 semantic"
+            matched_kw = (f" · <em>{row['Matched Keyword']}</em>"
+                          if row.get("Matched Keyword") else "")
+            st.markdown(
+                f"""<div style="border-left:4px solid {color}; padding:0.5rem 1rem;
+                    background:#0e1117; border-radius:4px; margin-bottom:0.6rem;">
+                  <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
+                    <span style="font-weight:600; color:{color}; font-size:0.9rem;">
+                      {row['Validation Category']}
+                    </span>
+                    <span style="color:#888; font-size:0.82rem;">
+                      {row['Document'][:50]} &nbsp;·&nbsp; p.{int(row['Page'])}
+                      &nbsp;·&nbsp; {kw_badge}{matched_kw}
+                      &nbsp;·&nbsp; score: <strong>{row['Final Score']:.3f}</strong>
+                    </span>
+                  </div>
+                  <div style="color:#a29bfe; font-size:0.82rem; margin-top:0.25rem;">
+                    {row['Theme']}
+                  </div>
+                  <div style="color:#e8f0f7; margin-top:0.35rem; font-size:0.9rem;
+                              line-height:1.5;">
+                    {row['Excerpt']}
+                  </div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+        st.caption(
+            f"Showing results {start_idx + 1}–{end_idx} of {total:,}. "
+            f"Use filters above to narrow down, or export all results."
+        )

@@ -1,0 +1,24 @@
+[theme]
+base = "dark"
+primaryColor = "#0a7ea4"
+backgroundColor = "#0e1117"
+secondaryBackgroundColor = "#1e2a3a"
+textColor = "#e8f0f7"
+font = "sans serif"
+
+[server]
+maxUploadSize = 200
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+
+[runner]
+# Prevent Streamlit's file watcher from scanning transformers internals.
+# transformers imports torchvision lazily in some submodules; the watcher
+# triggers those imports and crashes even though the app never uses them.
+fastReruns = false
+
+[client]
+showErrorDetails = true

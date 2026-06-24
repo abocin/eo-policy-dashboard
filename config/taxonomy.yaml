@@ -1,0 +1,445 @@
+# ============================================================
+# EO Downstream Skills Taxonomy — Search Configuration
+# ============================================================
+# Each theme has:
+#   - label     : display name used in the dashboard
+#   - keywords  : exact / substring keyword triggers (case-insensitive)
+#                 Includes English, Dutch (NL), Greek (EL),
+#                 Portuguese (PT), and Italian (IT) terms
+#   - queries   : natural-language queries for semantic (SBERT) search
+#   - weight    : relative importance multiplier (1.0 = neutral)
+#
+# Multilingual notes:
+#   - Dutch keywords are marked      # NL
+#   - Greek keywords are marked      # EL
+#   - Portuguese keywords are marked # PT
+#   - Italian keywords are marked    # IT
+#   - SBERT model (paraphrase-multilingual-MiniLM-L12-v2) handles
+#     cross-lingual matching, so queries stay in English.
+#   - Keywords provide an additional exact-match safety net for
+#     language-specific terms the SBERT model might rank lower.
+# ============================================================
+
+themes:
+
+  - label: "EO Downstream Skills"
+    keywords:
+      # English
+      - earth observation
+      - EO downstream
+      - satellite imagery
+      - remote sensing
+      - geospatial analysis
+      - spatial data
+      - EO data
+      - satellite data processing
+      - Copernicus
+      - Sentinel data
+      - SAR data
+      - multispectral analysis
+      # Dutch (NL)
+      - aardobservatie                    # earth observation
+      - satellietbeelden                  # satellite imagery
+      - teledetectie                      # remote sensing
+      - ruimtelijke analyse               # spatial analysis
+      - satellietgegevens                 # satellite data
+      - geografische informatie           # geographic information
+      - geodata
+      - aardobservatievaardigheden        # EO skills
+      - ruimtevaartvaardigheden           # space skills
+      # Greek (EL)
+      - παρατήρηση γης                   # earth observation
+      - δορυφορικές εικόνες              # satellite imagery
+      - τηλεπισκόπηση                    # remote sensing
+      - γεωχωρική ανάλυση               # geospatial analysis
+      - δορυφορικά δεδομένα              # satellite data
+      - Κοπέρνικος                       # Copernicus
+      - δεδομένα EO                      # EO data
+      # Portuguese (PT)
+      - observação da Terra              # earth observation
+      - imagens de satélite              # satellite imagery
+      - deteção remota                   # remote sensing
+      - análise geoespacial              # geospatial analysis
+      - dados de satélite                # satellite data
+      - processamento de dados EO        # EO data processing
+      - competências em EO               # EO skills
+      # Italian (IT)
+      - osservazione della Terra         # earth observation
+      - immagini satellitari             # satellite imagery
+      - telerilevamento                  # remote sensing
+      - analisi geospaziale              # geospatial analysis
+      - dati satellitari                 # satellite data
+      - elaborazione dati EO             # EO data processing
+      - competenze EO                    # EO skills
+    queries:
+      - "skills needed to work with earth observation data"
+      - "training for earth observation downstream applications"
+      - "workforce competencies in satellite remote sensing"
+      - "EO data analyst skills gap"
+    weight: 1.5
+
+  - label: "Space Industry Skills"
+    keywords:
+      # English
+      - space industry
+      - space sector
+      - space economy
+      - new space
+      - space technology
+      - space workforce
+      - aerospace skills
+      - satellite operations
+      - space applications
+      - space data
+      - orbital data
+      # Dutch (NL)
+      - ruimtevaartindustrie              # space industry
+      - ruimtevaartsector                 # space sector
+      - ruimtevaarteconomie              # space economy
+      - ruimtevaart                       # aerospace / space
+      - satellietoperaties                # satellite operations
+      - ruimtetechnologie                 # space technology
+      - nieuwe ruimtevaart               # new space
+      - ruimtevaartpersoneel             # space workforce
+      # Greek (EL)
+      - διαστημική βιομηχανία            # space industry
+      - διαστημικός τομέας               # space sector
+      - διαστημική οικονομία             # space economy
+      - αεροδιαστημική                   # aerospace
+      - δορυφορικές επιχειρήσεις         # satellite operations
+      - νέο διάστημα                     # new space
+      - διαστημική τεχνολογία            # space technology
+      # Portuguese (PT)
+      - indústria espacial               # space industry
+      - setor espacial                   # space sector
+      - economia espacial                # space economy
+      - nova economia espacial           # new space economy
+      - tecnologia espacial              # space technology
+      - operações de satélite            # satellite operations
+      - força de trabalho espacial       # space workforce
+      # Italian (IT)
+      - industria spaziale               # space industry
+      - settore spaziale                 # space sector
+      - economia spaziale                # space economy
+      - nuovo spazio                     # new space
+      - tecnologia spaziale              # space technology
+      - operazioni satellitari           # satellite operations
+      - forza lavoro spaziale            # space workforce
+    queries:
+      - "skills required for space industry jobs"
+      - "space sector workforce development"
+      - "employment in the space economy"
+      - "space technology competencies and training"
+    weight: 1.4
+
+  - label: "Geospatial & GIS"
+    keywords:
+      # English
+      - GIS
+      - geographic information system
+      - geospatial
+      - geoinformatics
+      - spatial analysis
+      - mapping skills
+      - cartography
+      - geodata
+      - location intelligence
+      - QGIS
+      - ArcGIS
+      - PostGIS
+      # Dutch (NL)
+      - geografisch informatiesysteem     # geographic information system
+      - geoinformatica                    # geoinformatics
+      - ruimtelijke data                  # spatial data
+      - kartering                         # cartography / mapping
+      - locatie-intelligentie             # location intelligence
+      - geo-informatie                    # geo-information
+      - ruimtelijke ordening              # spatial planning
+      # Greek (EL)
+      - γεωγραφικά συστήματα πληροφοριών # geographic information systems
+      - γεωπληροφορική                   # geoinformatics
+      - χωρική ανάλυση                   # spatial analysis
+      - χαρτογραφία                      # cartography
+      - γεωδεδομένα                      # geodata
+      - τοπογραφία                       # topography / mapping
+      # Portuguese (PT)
+      - sistema de informação geográfica  # geographic information system
+      - geoinformática                    # geoinformatics
+      - análise espacial                  # spatial analysis
+      - cartografia                       # cartography
+      - geodados                          # geodata
+      - inteligência de localização       # location intelligence
+      - ordenamento do território         # spatial planning
+      # Italian (IT)
+      - sistema informativo geografico    # geographic information system
+      - geoinformatica                    # geoinformatics
+      - analisi spaziale                  # spatial analysis
+      - cartografia                       # cartography
+      - geodati                           # geodata
+      - intelligenza geografica           # location intelligence
+      - pianificazione territoriale       # spatial planning
+    queries:
+      - "GIS skills and geospatial competencies"
+      - "geographic information systems training needs"
+      - "spatial data analysis workforce"
+    weight: 1.2
+
+  - label: "Copernicus & EU Space Services"
+    keywords:
+      # English / programme names (language-independent acronyms)
+      - Copernicus
+      - CMEMS
+      - C3S
+      - CAMS
+      - Copernicus Land
+      - Copernicus Marine
+      - Copernicus Emergency
+      - CLMS
+      - Galileo
+      - EGNOS
+      - EU space programme
+      - EUMETSAT
+      - ESA
+      - EUSPA
+      # Dutch (NL)
+      - Europees ruimteprogramma          # European space programme
+      - ruimteobservatie diensten         # space observation services
+      - Copernicus-diensten               # Copernicus services
+      - aardobservatie diensten           # EO services
+      # Greek (EL)
+      - Ευρωπαϊκό Διαστημικό Πρόγραμμα  # European Space Programme
+      - υπηρεσίες Κοπέρνικος             # Copernicus services
+      - ευρωπαϊκές διαστημικές υπηρεσίες # European space services
+      # Portuguese (PT)
+      - programa espacial europeu         # European Space Programme
+      - serviços Copernicus               # Copernicus services
+      - serviços espaciais europeus       # European space services
+      - serviços de observação da Terra   # Earth observation services
+      # Italian (IT)
+      - programma spaziale europeo        # European Space Programme
+      - servizi Copernicus                # Copernicus services
+      - servizi spaziali europei          # European space services
+      - servizi di osservazione della Terra # Earth observation services
+    queries:
+      - "use of Copernicus services in downstream applications"
+      - "Copernicus data skills and user uptake"
+      - "European Space Programme services workforce"
+    weight: 1.3
+
+  - label: "Digital Skills for Space"
+    keywords:
+      # English
+      - digital skills
+      - data science
+      - machine learning
+      - artificial intelligence
+      - deep learning
+      - cloud computing
+      - big data
+      - Python
+      - R programming
+      - data engineering
+      - satellite machine learning
+      - AI for earth observation
+      # Dutch (NL)
+      - digitale vaardigheden             # digital skills
+      - datawetenschap                    # data science
+      - machinaal leren                   # machine learning
+      - kunstmatige intelligentie         # artificial intelligence
+      - cloudcomputing                    # cloud computing
+      - grote datasets                    # big data
+      - data-engineering                  # data engineering
+      - digitale competenties             # digital competencies
+      # Greek (EL)
+      - ψηφιακές δεξιότητες              # digital skills
+      - επιστήμη δεδομένων               # data science
+      - μηχανική μάθηση                  # machine learning
+      - τεχνητή νοημοσύνη                # artificial intelligence
+      - υπολογιστικό νέφος               # cloud computing
+      - μεγάλα δεδομένα                  # big data
+      - ψηφιακές ικανότητες              # digital competencies
+      # Portuguese (PT)
+      - competências digitais             # digital skills
+      - ciência de dados                  # data science
+      - aprendizagem automática           # machine learning
+      - inteligência artificial           # artificial intelligence
+      - computação em nuvem               # cloud computing
+      - big data
+      - engenharia de dados               # data engineering
+      - competências digitais avançadas   # advanced digital competencies
+      # Italian (IT)
+      - competenze digitali               # digital skills
+      - scienza dei dati                  # data science
+      - apprendimento automatico          # machine learning
+      - intelligenza artificiale          # artificial intelligence
+      - cloud computing
+      - big data
+      - ingegneria dei dati               # data engineering
+      - competenze digitali avanzate      # advanced digital competencies
+    queries:
+      - "digital and data science skills for satellite applications"
+      - "AI and machine learning applied to remote sensing"
+      - "cloud computing skills for geospatial data"
+    weight: 1.1
+
+  - label: "Skills Gaps & Workforce Development"
+    keywords:
+      # English
+      - skills gap
+      - skills shortage
+      - talent gap
+      - workforce development
+      - capacity building
+      - upskilling
+      - reskilling
+      - vocational training
+      - professional development
+      - education and training
+      - STEM skills
+      - lifelong learning
+      - training needs analysis
+      # Dutch (NL)
+      - vaardigheidstekort                # skills gap / shortage
+      - tekort aan talent                 # talent shortage
+      - personeelsontwikkeling            # workforce development
+      - capaciteitsopbouw                 # capacity building
+      - bijscholing                       # upskilling
+      - omscholing                        # reskilling
+      - beroepsopleiding                  # vocational training
+      - professionele ontwikkeling        # professional development
+      - leven lang leren                  # lifelong learning
+      - STEM-vaardigheden                 # STEM skills
+      - opleidingsbehoeften               # training needs
+      # Greek (EL)
+      - κενό δεξιοτήτων                  # skills gap
+      - έλλειψη δεξιοτήτων               # skills shortage
+      - ανάπτυξη εργατικού δυναμικού     # workforce development
+      - ανάπτυξη ικανοτήτων              # capacity building
+      - αναβάθμιση δεξιοτήτων            # upskilling
+      - επανεκπαίδευση                   # reskilling
+      - επαγγελματική κατάρτιση          # vocational training
+      - δια βίου μάθηση                  # lifelong learning
+      - δεξιότητες STEM                  # STEM skills
+      - ανάγκες κατάρτισης               # training needs
+      # Portuguese (PT)
+      - lacuna de competências            # skills gap
+      - escassez de competências          # skills shortage
+      - desenvolvimento da força de trabalho # workforce development
+      - capacitação                       # capacity building
+      - atualização de competências       # upskilling
+      - requalificação profissional       # reskilling
+      - formação profissional             # vocational training
+      - aprendizagem ao longo da vida     # lifelong learning
+      - competências STEM                 # STEM skills
+      - análise de necessidades de formação # training needs analysis
+      # Italian (IT)
+      - carenza di competenze             # skills gap / shortage
+      - divario di competenze             # skills gap
+      - sviluppo della forza lavoro       # workforce development
+      - sviluppo delle capacità           # capacity building
+      - aggiornamento delle competenze    # upskilling
+      - riqualificazione professionale    # reskilling
+      - formazione professionale          # vocational training
+      - apprendimento permanente          # lifelong learning
+      - competenze STEM                   # STEM skills
+      - analisi dei fabbisogni formativi  # training needs analysis
+    queries:
+      - "skills gap in the space sector"
+      - "workforce capacity building for digital and space skills"
+      - "reskilling and upskilling programmes for technology workers"
+      - "education policy for emerging technology skills"
+    weight: 1.2
+
+  - label: "Policy Support for Downstream Applications"
+    keywords:
+      # English
+      - downstream applications
+      - space applications support
+      - satellite-based services
+      - EO-based services
+      - smart specialisation
+      - S3 strategy
+      - regional innovation
+      - technology transfer
+      - commercialisation
+      - value-added services
+      - market uptake
+      # Dutch (NL)
+      - stroomafwaartse toepassingen      # downstream applications
+      - slimme specialisatie             # smart specialisation
+      - regionale innovatie               # regional innovation
+      - technologieoverdracht             # technology transfer
+      - commercialisering                 # commercialisation
+      - satellietdiensten                 # satellite services
+      - op aardobservatie gebaseerde diensten  # EO-based services
+      - marktuptake                       # market uptake
+      # Greek (EL)
+      - εφαρμογές κατάντη                # downstream applications
+      - έξυπνη εξειδίκευση               # smart specialisation
+      - περιφερειακή καινοτομία           # regional innovation
+      - μεταφορά τεχνολογίας             # technology transfer
+      - εμπορευματοποίηση                # commercialisation
+      - υπηρεσίες βασισμένες σε δορυφόρο # satellite-based services
+      - υπηρεσίες EO                     # EO services
+      # Portuguese (PT)
+      - aplicações a jusante              # downstream applications
+      - especialização inteligente        # smart specialisation
+      - estratégia S3                     # S3 strategy
+      - inovação regional                 # regional innovation
+      - transferência de tecnologia       # technology transfer
+      - comercialização                   # commercialisation
+      - serviços baseados em satélite     # satellite-based services
+      - serviços EO                       # EO services
+      # Italian (IT)
+      - applicazioni a valle              # downstream applications
+      - specializzazione intelligente     # smart specialisation
+      - strategia S3                      # S3 strategy
+      - innovazione regionale             # regional innovation
+      - trasferimento tecnologico         # technology transfer
+      - commercializzazione               # commercialisation
+      - servizi basati su satellite       # satellite-based services
+      - servizi EO                        # EO services
+    queries:
+      - "policy supporting downstream earth observation applications"
+      - "government strategy for space technology commercialisation"
+      - "smart specialisation in space and satellite services"
+    weight: 1.0
+
+# ============================================================
+# Scoring thresholds
+# ============================================================
+thresholds:
+  valid_match: 0.50       # CrossEncoder score >= this → VALID EVIDENCE
+  weak_match:  0.35       # CrossEncoder score >= this → WEAK EVIDENCE
+  # below weak_match     → NOT RELEVANT
+
+# ============================================================
+# Semantic search settings
+# ============================================================
+search:
+  # ── Search mode ──────────────────────────────────────────────────────────
+  #
+  # Mode A — OpenAI-only (default, recommended for Streamlit Cloud)
+  #   use_sbert: false  |  use_openai: true
+  #   RAM: ~200MB  |  No torch/model download  |  Requires OPENAI_API_KEY
+  #   Cost: ~$0.01–0.05 per full 30-PDF corpus (text-embedding-3-small)
+  #
+  # Mode B — SBERT-only (offline, no API key needed)
+  #   use_sbert: true  |  use_openai: false
+  #   RAM: ~600MB  |  Downloads model on first run (~85MB)
+  #
+  # Mode C — Hybrid (best quality, needs >2GB RAM — run locally)
+  #   use_sbert: true  |  use_cross_encoder: true  |  use_openai: true
+  # ─────────────────────────────────────────────────────────────────────────
+  use_sbert: false
+  use_cross_encoder: false
+  use_openai: true
+
+  sbert_model: "all-MiniLM-L6-v2"
+  cross_encoder_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+  # top_k_sentences: max semantic hits returned per theme per document.
+  # OpenAI embeddings are high quality so 5 is safe without RAM pressure.
+  top_k_sentences: 5
+  chunk_size: 400
+  chunk_overlap: 80

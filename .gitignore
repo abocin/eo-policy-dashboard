@@ -1,0 +1,28 @@
+# Streamlit secrets — NEVER commit
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Cache files (contain embeddings, not secrets — but can be large)
+.cache/
+*.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Uploaded PDFs (not part of the codebase)
+uploads/

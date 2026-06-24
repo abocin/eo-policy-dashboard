@@ -1,0 +1,165 @@
+# =============================================================
+# CI Workflow — EO Policy Skills Dashboard
+# =============================================================
+# Triggers : push / PR to main
+# Jobs     : lint (flake8) → test (pytest with sample PDF)
+# Alerts   : GitHub email notification on failure (built-in)
+#            + optional Slack webhook (set secret SLACK_WEBHOOK_URL)
+# =============================================================
+
+name: CI — Lint & Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs on the same branch when a new push arrives
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pin the SBERT and CrossEncoder models so tests never hit Hugging Face
+  # during CI — we mock them instead (see conftest.py).
+  TRANSFORMERS_OFFLINE: "0"
+  HF_HUB_DISABLE_PROGRESS_BARS: "1"
+
+jobs:
+  # -----------------------------------------------------------
+  # JOB 1: Lint
+  # -----------------------------------------------------------
+  lint:
+    name: Lint (flake8)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install flake8
+        run: pip install flake8 flake8-bugbear flake8-docstrings
+
+      - name: Run flake8
+        run: |
+          flake8 core/ pages/ app.py \
+            --config=.flake8 \
+            --format="::error file=%(path)s,line=%(row)d,col=%(col)d::%(text)s"
+
+  # -----------------------------------------------------------
+  # JOB 2: Unit + Integration Tests
+  # -----------------------------------------------------------
+  test:
+    name: Tests (pytest)
+    runs-on: ubuntu-latest
+    needs: lint          # only run if lint passes
+
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      # Cache the Hugging Face model weights so they are not re-downloaded
+      # on every CI run (models are ~170 MB total).
+      - name: Cache Hugging Face models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-models-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            hf-models-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov reportlab
+
+      - name: Run fast unit tests (no model download)
+        env:
+          OPENAI_API_KEY: ""
+        run: |
+          pytest tests/ -m "not integration" \
+            --cov=core \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --tb=short \
+            -v
+
+      - name: Run integration tests (with real models, only on Python 3.11)
+        if: matrix.python-version == '3.11'
+        env:
+          OPENAI_API_KEY: ""
+        run: |
+          pytest tests/ -m integration \
+            --tb=short \
+            -v \
+            --timeout=180
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-py${{ matrix.python-version }}
+          path: coverage.xml
+          retention-days: 14
+
+  # -----------------------------------------------------------
+  # JOB 3: Failure alert (Slack — optional)
+  # -----------------------------------------------------------
+  notify-failure:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: failure()            # only runs when lint or test has failed
+
+    steps:
+      - name: Send Slack alert
+        # Only fires if SLACK_WEBHOOK_URL secret is configured.
+        # To enable: Settings → Secrets → New secret → SLACK_WEBHOOK_URL
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "❌ *EO Policy Dashboard CI failed*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "❌ *CI pipeline failed* on `${{ github.ref_name }}`\n*Commit:* `${{ github.sha }}`\n*Author:* ${{ github.actor }}\n*Message:* ${{ github.event.head_commit.message }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View failed run>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Annotate summary on failure
+        run: |
+          echo "## ❌ CI failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Author | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY

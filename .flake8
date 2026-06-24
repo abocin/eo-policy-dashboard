@@ -1,0 +1,53 @@
+[flake8]
+# Maximum line length — 100 is a pragmatic choice for data science code
+max-line-length = 100
+
+# Ignore rules that conflict with common data-science / Streamlit patterns:
+#   E203 — whitespace before ':' (conflicts with Black / slice notation)
+#   W503 — line break before binary operator (Black-compatible style)
+#   D   series — docstring conventions (too strict for internal modules)
+#   B950 — opinionated line-length variant from flake8-bugbear
+extend-ignore =
+    E203,
+    W503,
+    D100,
+    D101,
+    D102,
+    D103,
+    D104,
+    D105,
+    D107,
+    D200,
+    D205,
+    D400,
+    D401,
+    B950
+
+# Directories and files to exclude entirely
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    build,
+    dist,
+    .cache,
+    tests/fixtures,
+    *.egg-info
+
+# Files to check (override with explicit paths in the CI command)
+filename = *.py
+
+# Maximum cyclomatic complexity — flag functions that are too complex
+max-complexity = 15
+
+# flake8-bugbear: enable opinionated warnings
+extend-select = B
+
+# Per-file ignores — keep test files a bit looser
+per-file-ignores =
+    # Tests can use assert, long lines for readability, and bare imports
+    tests/*.py: E501, S101, F401
+    # app.py uses Streamlit globals and conditional top-level code
+    app.py: E402
