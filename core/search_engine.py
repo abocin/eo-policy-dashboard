@@ -184,11 +184,16 @@ def openai_semantic_search(
     theme_label: str,
     top_k: int = 5,
     min_score: float = 0.25,
+    fhash: Optional[str] = None,
 ) -> List[SearchResult]:
     """
     Embed theme queries + all sentences via OpenAI text-embedding-3-small,
     return top_k most similar sentences per query.
     No torch required — pure HTTP + numpy.
+
+    If fhash is provided, sentence embeddings are loaded from disk cache
+    (keyed by fhash + theme_label) on a cache hit, or stored on a cache miss.
+    This avoids re-calling the OpenAI API for documents already processed.
     """
     api_key = os.environ.get("OPENAI_API_KEY") or ""
     if not api_key:
@@ -197,9 +202,10 @@ def openai_semantic_search(
 
     try:
         from openai import OpenAI  # type: ignore
+        from core.cache_manager import get_cached_embeddings, store_cached_embeddings  # noqa
         client = OpenAI(api_key=api_key)
 
-        # Embed queries
+        # Embed queries (always fresh — queries are tiny and never cached)
         q_resp = client.embeddings.create(
             input=theme_queries, model="text-embedding-3-small"
         )
@@ -207,18 +213,41 @@ def openai_semantic_search(
             [e.embedding for e in q_resp.data], dtype=np.float32
         )
 
-        # Embed sentences in batches of 500 (OpenAI max is 2048 inputs)
-        sent_texts = [s.text for s in sentences]
-        all_sent_vecs = []
-        OPENAI_BATCH = 500
-        for start in range(0, len(sent_texts), OPENAI_BATCH):
-            batch = sent_texts[start: start + OPENAI_BATCH]
-            resp = client.embeddings.create(
-                input=batch, model="text-embedding-3-small"
-            )
-            all_sent_vecs.extend([e.embedding for e in resp.data])
+        # ── Sentence embeddings: check disk cache first ───────────────────────
+        sent_vecs: Optional[np.ndarray] = None
+        cache_hit = False
 
-        sent_vecs = np.array(all_sent_vecs, dtype=np.float32)
+        if fhash:
+            sent_vecs = get_cached_embeddings(fhash, theme_label)
+            if sent_vecs is not None:
+                cache_hit = True
+                logger.info(
+                    "Embedding cache HIT  — %s / %s (%d vecs)",
+                    fhash, theme_label, len(sent_vecs),
+                )
+
+        if sent_vecs is None:
+            # Embed sentences in batches of 500 (OpenAI max is 2048 inputs)
+            sent_texts = [s.text for s in sentences]
+            all_sent_vecs = []
+            OPENAI_BATCH = 500
+            for start in range(0, len(sent_texts), OPENAI_BATCH):
+                batch = sent_texts[start: start + OPENAI_BATCH]
+                resp = client.embeddings.create(
+                    input=batch, model="text-embedding-3-small"
+                )
+                all_sent_vecs.extend([e.embedding for e in resp.data])
+
+            sent_vecs = np.array(all_sent_vecs, dtype=np.float32)
+            logger.info(
+                "Embedding cache MISS — %s / %s  (called OpenAI, %d vecs)",
+                fhash or "no-hash", theme_label, len(sent_vecs),
+            )
+
+            # Store for next run
+            if fhash:
+                store_cached_embeddings(fhash, theme_label, sent_vecs)
+
         sim_matrix = cosine_similarity(query_vecs, sent_vecs)
 
         seen: set = set()
@@ -337,6 +366,7 @@ def run_search_pipeline(
     use_openai: bool = False,
     use_cross_encoder: bool = False,
     use_sbert: bool = True,
+    fhash: Optional[str] = None,
 ) -> List[SearchResult]:
     """
     Full search pipeline for sentences from ONE document.
@@ -347,6 +377,10 @@ def run_search_pipeline(
     In all modes:
       - Sentences are never re-encoded between themes
       - Embedding matrices are explicitly freed after use
+
+    fhash (optional): SHA-256 hex digest of the source PDF bytes (first 16 chars).
+      When provided, OpenAI sentence embeddings are cached to disk per theme,
+      so subsequent runs skip the API call entirely for already-processed files.
     """
     valid_threshold = taxonomy.get("thresholds", {}).get("valid_match", 0.50)
     weak_threshold = taxonomy.get("thresholds", {}).get("weak_match", 0.35)
@@ -374,6 +408,7 @@ def run_search_pipeline(
             sem_results = openai_semantic_search(
                 sentences, queries, label,
                 top_k=top_k_sentences, min_score=min_sbert_score,
+                fhash=fhash,
             ) if use_openai else []
 
             excerpt_map: Dict[str, SearchResult] = {}

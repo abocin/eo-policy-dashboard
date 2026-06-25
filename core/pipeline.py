@@ -56,6 +56,7 @@ def _import_core_modules():
         cache_manager.file_hash,
         cache_manager.get_session_cache,
         cache_manager.set_session_cache,
+        cache_manager.embedding_cache_exists,
     )
 
 
@@ -98,6 +99,7 @@ def process_documents(
         file_hash,
         get_session_cache,
         set_session_cache,
+        embedding_cache_exists,
     ) = _import_core_modules()
 
     search_cfg = taxonomy.get("search", {})
@@ -124,7 +126,15 @@ def process_documents(
     docs: List[DocumentContent] = []
     n_total = len(uploaded_files)
 
+    # ---- Cache stats counters -----------------------------------------------
+    session_hits = 0
+    disk_hits = 0
+    api_calls = 0
+
     for i, (fname, fbytes) in enumerate(uploaded_files, start=1):
+        # ---- Compute file hash once per document ----------------------------
+        fhash = file_hash(fbytes)
+
         # ---- Progress -------------------------------------------------------
         if status_callback:
             status_callback(
@@ -132,13 +142,30 @@ def process_documents(
             )
 
         # ---- Check session cache for this document's results ---------------
-        cache_key = f"results_{file_hash(fbytes)}"
+        cache_key = f"results_{fhash}"
         cached = get_session_cache(cache_key)
 
         if cached is not None:
             doc, doc_results = cached
-            logger.info("Cache hit for %s (%d results)", fname, len(doc_results))
+            session_hits += 1
+            logger.info(
+                "Session cache HIT for %s (%d results)", fname, len(doc_results)
+            )
         else:
+            # ---- Check whether ALL theme embeddings are already on disk ----
+            themes = taxonomy.get("themes", [])
+            all_themes_cached = use_openai and all(
+                embedding_cache_exists(fhash, t["label"]) for t in themes
+            )
+            if all_themes_cached:
+                disk_hits += 1
+                logger.info(
+                    "Disk embedding cache HIT for %s — %d theme(s) cached",
+                    fname, len(themes),
+                )
+            else:
+                api_calls += 1
+
             # ---- Extract text -----------------------------------------------
             doc = extract_document(fbytes, fname)
             sents = make_sentences(doc)
@@ -151,8 +178,9 @@ def process_documents(
 
             # ---- Search this document only ----------------------------------
             if status_callback:
+                cache_note = " (disk cache)" if all_themes_cached else ""
                 status_callback(
-                    f"[{i}/{n_total}] Searching {fname} ({len(sents):,} sentences)…"
+                    f"[{i}/{n_total}] Searching {fname} ({len(sents):,} sentences){cache_note}…"
                 )
 
             doc_results = run_search_pipeline(
@@ -165,6 +193,7 @@ def process_documents(
                 use_openai=use_openai,
                 use_cross_encoder=use_cross_encoder,
                 use_sbert=use_sbert,
+                fhash=fhash,
             )
 
             logger.info(
@@ -181,8 +210,12 @@ def process_documents(
         all_results.extend(doc_results)
 
     logger.info(
-        "Pipeline complete — %d documents, %d total evidence excerpts",
+        "Pipeline complete — %d documents, %d total evidence excerpts "
+        "| session hits: %d, disk hits: %d, OpenAI calls: %d",
         len(docs),
         len(all_results),
+        session_hits,
+        disk_hits,
+        api_calls,
     )
     return all_results, docs

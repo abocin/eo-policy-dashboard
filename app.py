@@ -235,6 +235,26 @@ with st.sidebar:
     st.markdown(f"**Search mode**")
     st.info(f"{_mode_label}  \n{_mode_help}")
 
+    # -- Embedding cache stats -----------------------------------------------
+    st.divider()
+    st.markdown("**Embedding cache**")
+    try:
+        from core.cache_manager import cache_stats, clear_disk_cache, CACHE_DIR
+        _cs = cache_stats()
+        _persist_label = "🟢 Persistent (Railway volume)" if _cs["is_persistent"] else "🟡 Ephemeral (local .cache)"
+        st.caption(
+            f"{_persist_label}  \n"
+            f"`{_cs['cache_dir']}`  \n"
+            f"{_cs['unique_docs']} doc(s) cached · {_cs['cached_files']} file(s) · {_cs['total_size_mb']} MB"
+        )
+        if _cs["cached_files"] > 0:
+            if st.button("🗑️ Clear disk cache", width="stretch"):
+                n = clear_disk_cache()
+                st.success(f"Cleared {n} cached embedding file(s).")
+                st.rerun()
+    except Exception as _e:
+        st.caption(f"Cache info unavailable: {_e}")
+
 # Override thresholds from sidebar sliders
 taxonomy.setdefault("thresholds", {})
 taxonomy["thresholds"]["valid_match"] = valid_threshold

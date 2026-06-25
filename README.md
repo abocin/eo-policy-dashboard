@@ -136,6 +136,55 @@ Open `http://localhost:8501` in your browser.
 
 ---
 
+### Railway (recommended for production)
+
+Railway auto-detects Python via Railpack — no Nixpacks or Dockerfile needed.
+
+#### 1. Push to GitHub and create a Railway project
+
+```bash
+git push origin main
+```
+
+In the [Railway dashboard](https://railway.app): **New project → Deploy from GitHub repo** → select `eo-policy-dashboard`.
+
+#### 2. Set environment variables
+
+In **Variables** (Railway dashboard):
+
+| Variable | Value | Notes |
+|---|---|---|
+| `OPENAI_API_KEY` | `sk-...` | Required for OpenAI-only mode |
+| `CACHE_DIR` | `/data` | Set this **after** adding a volume (see below) |
+
+#### 3. (Recommended) Add a persistent volume for embedding cache
+
+Without a volume, embedding vectors are recomputed from scratch on every redeploy (~5 min, ~$0.05). With a volume, cached embeddings survive redeploys — cache hits take ~10 seconds and cost $0.
+
+**Steps:**
+
+1. In Railway dashboard → your service → **Volumes** tab → **Add Volume**
+2. Set mount path: `/data`
+3. Go to **Variables** and add: `CACHE_DIR = /data`
+4. Redeploy the service
+
+The cache manager resolves the directory automatically:
+- `CACHE_DIR` env var → highest priority (Railway volume)
+- `/data` if it exists and is writable → Railway default volume path
+- `.cache` → local ephemeral fallback
+
+Embedding files are stored as `{file_hash}_{theme_slug}.npy` under `$CACHE_DIR/embeddings/`. The sidebar shows cache status (persistent vs. ephemeral), number of cached documents, and total disk size.
+
+#### 4. Deploy
+
+Railway deploys automatically on every `git push`. The Procfile configures the start command:
+
+```
+web: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
+```
+
+---
+
 ### Hugging Face Spaces (free, GPU optional)
 
 1. Create a new Space at [huggingface.co/spaces](https://huggingface.co/spaces)
@@ -270,3 +319,6 @@ See the "Power BI Integration" section at the bottom of this README for a full s
 | — | Added Plotly heatmap, score distribution, theme stacked bar |
 | — | Added Excel multi-sheet export + D3 network JSON |
 | — | Removed hard-coded API key |
+| 1.1.0 | Multilingual taxonomy — NL + EL keywords (289 total); paginated evidence cards; PDF + Excel evidence reports |
+| 1.2.0 | OpenAI-only mode (`use_sbert: false`) — ~200MB RAM, no torch; PT + IT keywords; Railway deployment |
+| 1.3.0 | Disk embedding cache — OpenAI vectors persisted as `.npy` files keyed by file hash; Railway volume mount support (`CACHE_DIR` env var); cache stats in sidebar; clear cache button |
