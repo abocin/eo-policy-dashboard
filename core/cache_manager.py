@@ -82,6 +82,8 @@ def _resolve_cache_dir() -> Path:
 CACHE_DIR: Path = _resolve_cache_dir()
 EMBEDDINGS_DIR: Path = CACHE_DIR / "embeddings"
 EMBEDDINGS_DIR.mkdir(parents=True, exist_ok=True)
+UPLOADS_DIR: Path = CACHE_DIR / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ---------------------------------------------------------------------------
@@ -188,6 +190,46 @@ def clear_disk_cache() -> int:
     for f in files:
         f.unlink(missing_ok=True)
     logger.info("Disk cache cleared: %d files deleted", len(files))
+    return len(files)
+
+
+# ---------------------------------------------------------------------------
+# Upload staging  (write PDFs to disk so bytes are never held in RAM)
+# ---------------------------------------------------------------------------
+
+def stage_upload(filename: str, file_bytes: bytes) -> Path:
+    """
+    Write uploaded PDF bytes to UPLOADS_DIR and return the path.
+    Filename is sanitised; existing files with the same name are overwritten.
+    """
+    safe_name = "".join(
+        c if (c.isalnum() or c in "._- ") else "_" for c in filename
+    )
+    dest = UPLOADS_DIR / safe_name
+    dest.write_bytes(file_bytes)
+    logger.debug("Staged upload: %s (%d bytes)", dest.name, len(file_bytes))
+    return dest
+
+
+def list_staged_uploads() -> List[str]:
+    """Return filenames of all PDFs currently in the upload staging area."""
+    return sorted(p.name for p in UPLOADS_DIR.glob("*.pdf"))
+
+
+def read_staged_upload(filename: str) -> Optional[bytes]:
+    """Read bytes for a staged PDF. Returns None if the file doesn't exist."""
+    path = UPLOADS_DIR / filename
+    if path.exists():
+        return path.read_bytes()
+    return None
+
+
+def clear_staged_uploads() -> int:
+    """Delete all staged PDFs. Returns number of files deleted."""
+    files = list(UPLOADS_DIR.glob("*.pdf"))
+    for f in files:
+        f.unlink(missing_ok=True)
+    logger.info("Staged uploads cleared: %d files deleted", len(files))
     return len(files)
 
 

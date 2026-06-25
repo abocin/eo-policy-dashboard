@@ -94,8 +94,10 @@ def init_session_state():
         "taxonomy": None,
         "human_labels": {},     # {excerpt_hash: label_string}
         "analysis_done": False,
+        # NOTE: file bytes are no longer stored in session_state.
+        # They are written to UPLOADS_DIR on disk immediately after upload.
+        # session_state only holds the list of filenames (tiny strings).
         "uploaded_file_names": [],
-        "file_pairs": [],       # List[(name, bytes)] — persists across reruns
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -123,22 +125,25 @@ with st.sidebar:
         help="Upload the policy PDFs you want to analyse. Files are processed locally.",
     )
 
-    # Persist file bytes in session_state as soon as files are selected.
-    # MERGE new uploads into the existing corpus (never replace, never clear
-    # on a rerun where the uploader widget resets to []).
+    # Write each uploaded file to disk immediately — never hold bytes in RAM.
+    # session_state stores only filenames (a few KB at most).
+    # This prevents OOM crashes when uploading large batches.
     if uploaded_files:
-        new_pairs = [(f.name, f.read()) for f in uploaded_files]
-        existing_pairs = st.session_state.get("file_pairs", [])
-        existing_names = {n for n, _ in existing_pairs}
-        # Only add files not already in the corpus
-        added = [(n, b) for n, b in new_pairs if n not in existing_names]
-        if added:
-            merged = existing_pairs + added
-            st.session_state["file_pairs"] = merged
-            st.session_state["uploaded_file_names"] = [n for n, _ in merged]
+        from core.cache_manager import stage_upload, list_staged_uploads
+        existing_on_disk = set(list_staged_uploads())
+        for f in uploaded_files:
+            if f.name not in existing_on_disk:
+                stage_upload(f.name, f.read())
+        # Sync session_state filenames from disk (source of truth)
+        st.session_state["uploaded_file_names"] = list_staged_uploads()
 
-    # Show persisted corpus list even when uploader widget resets to empty
-    _persisted_names = st.session_state.get("uploaded_file_names", [])
+    # Source of truth: what's on disk right now
+    from core.cache_manager import list_staged_uploads as _list_staged
+    _persisted_names = _list_staged()
+    # Keep session_state in sync (survives widget resets)
+    if _persisted_names:
+        st.session_state["uploaded_file_names"] = _persisted_names
+
     if _persisted_names:
         st.caption(
             f"📄 {len(_persisted_names)} document(s) in corpus: "
@@ -146,7 +151,8 @@ with st.sidebar:
             + (f" … +{len(_persisted_names) - 5} more" if len(_persisted_names) > 5 else "")
         )
         if st.button("❌ Clear corpus", width="stretch"):
-            st.session_state["file_pairs"] = []
+            from core.cache_manager import clear_staged_uploads
+            clear_staged_uploads()
             st.session_state["uploaded_file_names"] = []
             st.session_state["analysis_done"] = False
             st.session_state["results"] = []
@@ -205,7 +211,7 @@ with st.sidebar:
     st.divider()
 
     # -- Run button ----------------------------------------------------------
-    _has_corpus = bool(st.session_state.get("file_pairs"))
+    _has_corpus = bool(_persisted_names)
     run_analysis = st.button(
         "🔍 Run Analysis",
         type="primary",
@@ -298,9 +304,14 @@ st.session_state["taxonomy"] = taxonomy
 # Run the pipeline when the user clicks Run Analysis
 # ===========================================================================
 
-if run_analysis and st.session_state.get("file_pairs"):
-    # Use bytes already stored in session_state (persisted on upload, survive reruns)
-    file_pairs = st.session_state["file_pairs"]
+if run_analysis and _persisted_names:
+    # Read file bytes from disk staging area — never from RAM / session_state.
+    from core.cache_manager import read_staged_upload
+    file_pairs = [
+        (name, read_staged_upload(name))
+        for name in _persisted_names
+        if read_staged_upload(name) is not None
+    ]
 
     progress_placeholder = st.empty()
 
