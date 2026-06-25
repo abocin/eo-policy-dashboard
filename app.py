@@ -124,16 +124,18 @@ with st.sidebar:
     )
 
     # Persist file bytes in session_state as soon as files are selected.
-    # Only overwrite the stored corpus when the uploader delivers a NEW non-empty
-    # batch — never clear it when the uploader resets to [] mid-session.
+    # MERGE new uploads into the existing corpus (never replace, never clear
+    # on a rerun where the uploader widget resets to []).
     if uploaded_files:
         new_pairs = [(f.name, f.read()) for f in uploaded_files]
-        # Only replace if this is a genuinely different/larger set
-        existing_names = {n for n, _ in st.session_state.get("file_pairs", [])}
-        new_names = {n for n, _ in new_pairs}
-        if new_names != existing_names:
-            st.session_state["file_pairs"] = new_pairs
-            st.session_state["uploaded_file_names"] = [n for n, _ in new_pairs]
+        existing_pairs = st.session_state.get("file_pairs", [])
+        existing_names = {n for n, _ in existing_pairs}
+        # Only add files not already in the corpus
+        added = [(n, b) for n, b in new_pairs if n not in existing_names]
+        if added:
+            merged = existing_pairs + added
+            st.session_state["file_pairs"] = merged
+            st.session_state["uploaded_file_names"] = [n for n, _ in merged]
 
     # Show persisted corpus list even when uploader widget resets to empty
     _persisted_names = st.session_state.get("uploaded_file_names", [])
@@ -141,10 +143,17 @@ with st.sidebar:
         st.caption(
             f"📄 {len(_persisted_names)} document(s) in corpus: "
             + ", ".join(_persisted_names[:5])
-            + (f" … +{len(_persisted_names)-5} more" if len(_persisted_names) > 5 else "")
+            + (f" … +{len(_persisted_names) - 5} more" if len(_persisted_names) > 5 else "")
         )
+        if st.button("❌ Clear corpus", width="stretch"):
+            st.session_state["file_pairs"] = []
+            st.session_state["uploaded_file_names"] = []
+            st.session_state["analysis_done"] = False
+            st.session_state["results"] = []
+            st.session_state["docs"] = []
+            st.rerun()
     else:
-        st.info("Upload at least one PDF to begin.")
+        st.info("Upload PDFs in batches — each batch is added to the corpus.")
 
     # -- Taxonomy selector ---------------------------------------------------
     st.subheader("2. Taxonomy")
