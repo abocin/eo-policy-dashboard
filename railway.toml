@@ -2,5 +2,9 @@
 startCommand = "streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false"
 healthcheckPath = "/_stcore/health"
 healthcheckTimeout = 300
+# tcpProxyTimeout controls how long Railway keeps an open connection alive.
+# Default is 60s which kills long-running analysis pipelines.
+# Set to 3600 (1 hour) to allow large corpus runs to complete.
+tcpProxyTimeout = 3600
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3

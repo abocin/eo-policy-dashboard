@@ -178,34 +178,84 @@ def semantic_search_with_vecs(
 # OpenAI semantic search  (Mode A / C — requires OPENAI_API_KEY)
 # ---------------------------------------------------------------------------
 
-def openai_semantic_search(
+def openai_embed_sentences(
     sentences,
+    fhash: Optional[str] = None,
+) -> Optional[np.ndarray]:
+    """
+    Embed all sentences ONCE via OpenAI text-embedding-3-small.
+    Returns a float32 matrix (n_sentences x embedding_dim).
+
+    Checks disk cache first keyed by fhash + "__sentences__".
+    Stores result on a cache miss so subsequent runs skip the API call.
+    Returns None if the API key is missing or the call fails.
+
+    Call this ONCE per document before the theme loop, then pass the
+    matrix to openai_semantic_search_with_vecs() for each theme.
+    This reduces API calls from 7x per document to 1x.
+    """
+    api_key = os.environ.get("OPENAI_API_KEY") or ""
+    if not api_key:
+        return None
+
+    SENT_CACHE_KEY = "__sentences__"
+
+    try:
+        from openai import OpenAI  # type: ignore
+        from core.cache_manager import get_cached_embeddings, store_cached_embeddings
+
+        if fhash:
+            cached = get_cached_embeddings(fhash, SENT_CACHE_KEY)
+            if cached is not None:
+                logger.info(
+                    "Sentence embedding cache HIT -- %s (%d vecs)", fhash, len(cached)
+                )
+                return cached
+
+        client = OpenAI(api_key=api_key)
+        sent_texts = [s.text for s in sentences]
+        all_vecs = []
+        OPENAI_BATCH = 500
+        for start in range(0, len(sent_texts), OPENAI_BATCH):
+            batch = sent_texts[start: start + OPENAI_BATCH]
+            resp = client.embeddings.create(input=batch, model="text-embedding-3-small")
+            all_vecs.extend([e.embedding for e in resp.data])
+
+        arr = np.array(all_vecs, dtype=np.float32)
+        logger.info(
+            "Sentence embedding cache MISS -- %s  (called OpenAI, %d vecs)",
+            fhash or "no-hash", len(arr),
+        )
+
+        if fhash:
+            store_cached_embeddings(fhash, SENT_CACHE_KEY, arr)
+
+        return arr
+
+    except Exception as exc:
+        logger.warning("openai_embed_sentences failed: %s", exc)
+        return None
+
+
+def openai_semantic_search_with_vecs(
+    sentences,
+    sent_vecs: np.ndarray,
     theme_queries: List[str],
     theme_label: str,
     top_k: int = 5,
     min_score: float = 0.25,
-    fhash: Optional[str] = None,
 ) -> List[SearchResult]:
     """
-    Embed theme queries + all sentences via OpenAI text-embedding-3-small,
-    return top_k most similar sentences per query.
-    No torch required — pure HTTP + numpy.
-
-    If fhash is provided, sentence embeddings are loaded from disk cache
-    (keyed by fhash + theme_label) on a cache hit, or stored on a cache miss.
-    This avoids re-calling the OpenAI API for documents already processed.
+    Score sentences against theme_queries using pre-computed sentence vectors.
+    Only embeds the (tiny) query strings via OpenAI -- no sentence API call.
     """
     api_key = os.environ.get("OPENAI_API_KEY") or ""
     if not api_key:
-        logger.warning("OpenAI semantic search requested but OPENAI_API_KEY not set")
         return []
-
     try:
         from openai import OpenAI  # type: ignore
-        from core.cache_manager import get_cached_embeddings, store_cached_embeddings  # noqa
         client = OpenAI(api_key=api_key)
 
-        # Embed queries (always fresh — queries are tiny and never cached)
         q_resp = client.embeddings.create(
             input=theme_queries, model="text-embedding-3-small"
         )
@@ -213,43 +263,7 @@ def openai_semantic_search(
             [e.embedding for e in q_resp.data], dtype=np.float32
         )
 
-        # ── Sentence embeddings: check disk cache first ───────────────────────
-        sent_vecs: Optional[np.ndarray] = None
-        cache_hit = False
-
-        if fhash:
-            sent_vecs = get_cached_embeddings(fhash, theme_label)
-            if sent_vecs is not None:
-                cache_hit = True
-                logger.info(
-                    "Embedding cache HIT  — %s / %s (%d vecs)",
-                    fhash, theme_label, len(sent_vecs),
-                )
-
-        if sent_vecs is None:
-            # Embed sentences in batches of 500 (OpenAI max is 2048 inputs)
-            sent_texts = [s.text for s in sentences]
-            all_sent_vecs = []
-            OPENAI_BATCH = 500
-            for start in range(0, len(sent_texts), OPENAI_BATCH):
-                batch = sent_texts[start: start + OPENAI_BATCH]
-                resp = client.embeddings.create(
-                    input=batch, model="text-embedding-3-small"
-                )
-                all_sent_vecs.extend([e.embedding for e in resp.data])
-
-            sent_vecs = np.array(all_sent_vecs, dtype=np.float32)
-            logger.info(
-                "Embedding cache MISS — %s / %s  (called OpenAI, %d vecs)",
-                fhash or "no-hash", theme_label, len(sent_vecs),
-            )
-
-            # Store for next run
-            if fhash:
-                store_cached_embeddings(fhash, theme_label, sent_vecs)
-
         sim_matrix = cosine_similarity(query_vecs, sent_vecs)
-
         seen: set = set()
         results: List[SearchResult] = []
 
@@ -274,7 +288,7 @@ def openai_semantic_search(
                     openai_score=score,
                 ))
 
-        del sent_vecs, sim_matrix
+        del sim_matrix
         logger.info(
             "OpenAI semantic search: %d results for theme '%s'",
             len(results), theme_label,
@@ -284,6 +298,28 @@ def openai_semantic_search(
     except Exception as exc:
         logger.warning("OpenAI semantic search failed for theme '%s': %s", theme_label, exc)
         return []
+
+
+def openai_semantic_search(
+    sentences,
+    theme_queries: List[str],
+    theme_label: str,
+    top_k: int = 5,
+    min_score: float = 0.25,
+    fhash: Optional[str] = None,
+) -> List[SearchResult]:
+    """
+    Legacy single-theme entry point kept for backward compatibility.
+    Prefer calling openai_embed_sentences() once then
+    openai_semantic_search_with_vecs() per theme.
+    """
+    sent_vecs = openai_embed_sentences(sentences, fhash=fhash)
+    if sent_vecs is None:
+        return []
+    return openai_semantic_search_with_vecs(
+        sentences, sent_vecs, theme_queries, theme_label,
+        top_k=top_k, min_score=min_score,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -391,12 +427,23 @@ def run_search_pipeline(
 
     doc_name = sentences[0].doc_filename if sentences else "unknown"
 
-    # ── Mode A: OpenAI-only ─────────────────────────────────────────────────
+    # -- Mode A: OpenAI-only -------------------------------------------------
     if not use_sbert:
         logger.info(
             "Mode A (OpenAI-only): %d sentences from %s", len(sentences), doc_name
         )
         all_results: List[SearchResult] = []
+
+        # Embed sentences ONCE for the whole document, reuse across all 7 themes.
+        # This cuts OpenAI API calls from 7x down to 1x per document (~7x speedup).
+        sent_vecs: Optional[np.ndarray] = None
+        if use_openai:
+            sent_vecs = openai_embed_sentences(sentences, fhash=fhash)
+            if sent_vecs is None:
+                logger.warning(
+                    "openai_embed_sentences returned None for %s -- "
+                    "falling back to keyword-only", doc_name
+                )
 
         for theme in themes:
             label = theme["label"]
@@ -405,11 +452,13 @@ def run_search_pipeline(
 
             kw_results = keyword_search(sentences, label, keywords)
 
-            sem_results = openai_semantic_search(
-                sentences, queries, label,
-                top_k=top_k_sentences, min_score=min_sbert_score,
-                fhash=fhash,
-            ) if use_openai else []
+            if use_openai and sent_vecs is not None:
+                sem_results = openai_semantic_search_with_vecs(
+                    sentences, sent_vecs, queries, label,
+                    top_k=top_k_sentences, min_score=min_sbert_score,
+                )
+            else:
+                sem_results = []
 
             excerpt_map: Dict[str, SearchResult] = {}
             for r in kw_results:
@@ -431,7 +480,9 @@ def run_search_pipeline(
             )
             all_results.extend(theme_results)
 
-    # ── Mode B / C: SBERT (+ optional CrossEncoder + optional OpenAI) ───────
+        del sent_vecs
+
+        # ── Mode B / C: SBERT (+ optional CrossEncoder + optional OpenAI) ───────
     else:
         logger.info(
             "Mode B/C (SBERT): encoding %d sentences from %s once",
