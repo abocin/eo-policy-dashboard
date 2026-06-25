@@ -268,8 +268,9 @@ st.session_state["taxonomy"] = taxonomy
 # ===========================================================================
 
 if run_analysis and uploaded_files:
+    # Read each file ONCE — UploadedFile buffers are exhausted after .read()
     file_pairs = [(f.name, f.read()) for f in uploaded_files]
-    st.session_state["uploaded_file_names"] = [f.name for f in uploaded_files]
+    st.session_state["uploaded_file_names"] = [name for name, _ in file_pairs]
 
     progress_placeholder = st.empty()
 
