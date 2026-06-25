@@ -95,6 +95,7 @@ def init_session_state():
         "human_labels": {},     # {excerpt_hash: label_string}
         "analysis_done": False,
         "uploaded_file_names": [],
+        "file_pairs": [],       # List[(name, bytes)] — persists across reruns
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -121,6 +122,29 @@ with st.sidebar:
         accept_multiple_files=True,
         help="Upload the policy PDFs you want to analyse. Files are processed locally.",
     )
+
+    # Persist file bytes in session_state as soon as files are selected.
+    # Only overwrite the stored corpus when the uploader delivers a NEW non-empty
+    # batch — never clear it when the uploader resets to [] mid-session.
+    if uploaded_files:
+        new_pairs = [(f.name, f.read()) for f in uploaded_files]
+        # Only replace if this is a genuinely different/larger set
+        existing_names = {n for n, _ in st.session_state.get("file_pairs", [])}
+        new_names = {n for n, _ in new_pairs}
+        if new_names != existing_names:
+            st.session_state["file_pairs"] = new_pairs
+            st.session_state["uploaded_file_names"] = [n for n, _ in new_pairs]
+
+    # Show persisted corpus list even when uploader widget resets to empty
+    _persisted_names = st.session_state.get("uploaded_file_names", [])
+    if _persisted_names:
+        st.caption(
+            f"📄 {len(_persisted_names)} document(s) in corpus: "
+            + ", ".join(_persisted_names[:5])
+            + (f" … +{len(_persisted_names)-5} more" if len(_persisted_names) > 5 else "")
+        )
+    else:
+        st.info("Upload at least one PDF to begin.")
 
     # -- Taxonomy selector ---------------------------------------------------
     st.subheader("2. Taxonomy")
@@ -172,15 +196,13 @@ with st.sidebar:
     st.divider()
 
     # -- Run button ----------------------------------------------------------
+    _has_corpus = bool(st.session_state.get("file_pairs"))
     run_analysis = st.button(
         "🔍 Run Analysis",
         type="primary",
-        disabled=not uploaded_files,
+        disabled=not _has_corpus,
         width="stretch",
     )
-
-    if not uploaded_files:
-        st.info("Upload at least one PDF to begin.")
 
     # -- Reset button --------------------------------------------------------
     if st.button("🔄 Clear & Reset", width="stretch"):
@@ -267,10 +289,9 @@ st.session_state["taxonomy"] = taxonomy
 # Run the pipeline when the user clicks Run Analysis
 # ===========================================================================
 
-if run_analysis and uploaded_files:
-    # Read each file ONCE — UploadedFile buffers are exhausted after .read()
-    file_pairs = [(f.name, f.read()) for f in uploaded_files]
-    st.session_state["uploaded_file_names"] = [name for name, _ in file_pairs]
+if run_analysis and st.session_state.get("file_pairs"):
+    # Use bytes already stored in session_state (persisted on upload, survive reruns)
+    file_pairs = st.session_state["file_pairs"]
 
     progress_placeholder = st.empty()
 
