@@ -173,6 +173,6 @@ if __name__ == "__main__" or True:
     from core.page_utils import get_results_for_page, no_results_message
     _results = get_results_for_page()
     if not _results:
-        no_results_message()
+        no_results_message(page_key="validation")
     else:
         render_human_validation(_results)

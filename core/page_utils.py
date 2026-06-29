@@ -68,12 +68,17 @@ def get_results_for_page() -> List[SearchResult]:
     return st.session_state.get("results", [])
 
 
-def no_results_message():
-    """Standard message shown when no results are available."""
+def no_results_message(page_key: str = "default"):
+    """Standard message shown when no results are available.
+
+    Args:
+        page_key: unique string per page (e.g. 'results', 'charts',
+                  'validation') so Streamlit never sees duplicate keys.
+    """
     st.info(
         "No analysis results yet.  \n"
         "Go to the **main page**, upload PDFs or enter a folder path, "
         "and click **Run Analysis**."
     )
-    if st.button("Go to main page", key="no_results_go_main"):
+    if st.button("Go to main page", key=f"no_results_go_main_{page_key}"):
         st.switch_page("app.py")

@@ -276,7 +276,7 @@ if __name__ == "__main__" or True:
     from core.taxonomy_loader import load_taxonomy
     _results = get_results_for_page()
     if not _results:
-        no_results_message()
+        no_results_message(page_key="results")
     else:
         _taxonomy = load_taxonomy()
         render_results_table(_results, _taxonomy)
