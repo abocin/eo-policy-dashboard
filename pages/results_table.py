@@ -164,13 +164,76 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
 
     st.divider()
 
-    # ---- Paginated card view — ALL results ---------------------------------
-    with st.expander(f"🃏 Card view — all {total:,} results (paginated)", expanded=False):
-        if total == 0:
-            st.info("No results match the current filters.")
-            return
+    # ---- Card view quick-filter bar ---------------------------------------
+    st.divider()
+    st.subheader("🃏 Card View")
 
-        total_pages = max(1, (total + CARDS_PER_PAGE - 1) // CARDS_PER_PAGE)
+    qf_col1, qf_col2, qf_col3 = st.columns([3, 2, 2])
+
+    with qf_col1:
+        # Quick category buttons — one-click presets
+        cat_options = ["All"] + sorted(
+            df["Validation Category"].unique().tolist(),
+            key=lambda c: (
+                0 if c == "HIGHLY RELEVANT" else
+                1 if c == "RELEVANT" else
+                2 if c == "UNSCORED" else
+                3 if c == "NOT RELEVANT" else 4
+            )
+        )
+        quick_cat = st.radio(
+            "Quick category filter",
+            cat_options,
+            index=0,
+            horizontal=True,
+            key="card_quick_cat",
+            help="One-click filter applied on top of the filters above.",
+        )
+
+    with qf_col2:
+        card_sort = st.selectbox(
+            "Sort cards by",
+            ["Final Score ↓", "EO Relevance ↓", "Document A→Z", "Page ↑"],
+            key="card_sort_by",
+        )
+
+    with qf_col3:
+        cards_per_page_choice = st.selectbox(
+            "Cards per page",
+            [10, 25, 50, 100],
+            index=1,
+            key="cards_per_page_sel",
+        )
+
+    # Apply quick category filter on top of main filters
+    card_df = filtered.copy()
+    if quick_cat != "All":
+        card_df = card_df[card_df["Validation Category"] == quick_cat]
+
+    # Apply sort
+    if card_sort == "Final Score ↓":
+        card_df = card_df.sort_values("Final Score", ascending=False)
+    elif card_sort == "EO Relevance ↓" and has_eo_scores:
+        card_df = card_df.sort_values("EO Relevance Score", ascending=False)
+    elif card_sort == "Document A→Z":
+        card_df = card_df.sort_values(["Document", "Page"], ascending=True)
+    elif card_sort == "Page ↑":
+        card_df = card_df.sort_values(["Document", "Page"], ascending=True)
+    card_df = card_df.reset_index(drop=True)
+
+    card_total = len(card_df)
+    CARDS_PER_PAGE = cards_per_page_choice
+
+    st.caption(
+        f"Showing **{card_total:,}** cards"
+        + (f" (category: {quick_cat})" if quick_cat != "All" else "")
+        + f" · sorted by {card_sort}"
+    )
+
+    if card_total == 0:
+        st.info("No results match the current filters.")
+    else:
+        total_pages = max(1, (card_total + CARDS_PER_PAGE - 1) // CARDS_PER_PAGE)
 
         # Page selector — keep in session state so filters don't reset it
         page_key = "card_page"
@@ -194,7 +257,7 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 f"<div style='text-align:center; padding-top:0.4rem; color:#aaa;'>"
                 f"Page <strong>{st.session_state[page_key]}</strong> of "
                 f"<strong>{total_pages}</strong> "
-                f"({total:,} total results)</div>",
+                f"({card_total:,} total results)</div>",
                 unsafe_allow_html=True,
             )
         with nav_col4:
@@ -217,8 +280,8 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
 
         # Render current page
         start_idx = (st.session_state[page_key] - 1) * CARDS_PER_PAGE
-        end_idx = min(start_idx + CARDS_PER_PAGE, total)
-        page_df = filtered.iloc[start_idx:end_idx]
+        end_idx = min(start_idx + CARDS_PER_PAGE, card_total)
+        page_df = card_df.iloc[start_idx:end_idx]
 
         for _, row in page_df.iterrows():
             color = VALIDATION_COLORS.get(row["Validation Category"], "#636e72")
@@ -263,7 +326,7 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
             )
 
         st.caption(
-            f"Showing results {start_idx + 1}–{end_idx} of {total:,}. "
+            f"Showing results {start_idx + 1}–{end_idx} of {card_total:,}. "
             f"Use filters above to narrow down, or export all results."
         )
 
