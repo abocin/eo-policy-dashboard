@@ -75,5 +75,5 @@ def no_results_message():
         "Go to the **main page**, upload PDFs or enter a folder path, "
         "and click **Run Analysis**."
     )
-    if st.button("Go to main page"):
+    if st.button("Go to main page", key="no_results_go_main"):
         st.switch_page("app.py")
