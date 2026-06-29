@@ -162,6 +162,27 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
         column_config=col_config,
     )
 
+    # ---- Download buttons (table section) ---------------------------------
+    dl_col1, dl_col2 = st.columns(2)
+    with dl_col1:
+        st.download_button(
+            label=f"⬇️ Download filtered results ({total:,} rows)",
+            data=filtered.to_csv(index=False).encode("utf-8"),
+            file_name="eo_results_filtered.csv",
+            mime="text/csv",
+            key="download_filtered_table",
+            use_container_width=True,
+        )
+    with dl_col2:
+        st.download_button(
+            label=f"⬇️ Download ALL results ({len(df):,} rows)",
+            data=df.to_csv(index=False).encode("utf-8"),
+            file_name="eo_results_all.csv",
+            mime="text/csv",
+            key="download_all_results",
+            use_container_width=True,
+        )
+
     st.divider()
 
     # ---- Card view quick-filter bar ---------------------------------------
