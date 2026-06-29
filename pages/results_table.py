@@ -330,6 +330,19 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
             f"Use filters above to narrow down, or export all results."
         )
 
+    # ---- Download filtered cards as CSV -----------------------------------
+    st.divider()
+    csv_bytes = card_df.to_csv(index=False).encode("utf-8")
+    quick_label = f"_{quick_cat.lower().replace(' ', '_')}" if quick_cat != "All" else ""
+    st.download_button(
+        label=f"⬇️ Download filtered cards as CSV ({card_total:,} rows)",
+        data=csv_bytes,
+        file_name=f"eo_results{quick_label}.csv",
+        mime="text/csv",
+        key="download_filtered_cards",
+        use_container_width=True,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Standalone page execution (when accessed directly via sidebar URL)
