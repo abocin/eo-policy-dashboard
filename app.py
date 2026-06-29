@@ -136,6 +136,23 @@ def init_session_state():
 
 init_session_state()
 
+# ---------------------------------------------------------------------------
+# Auto-restore results from disk on fresh session (e.g. after reconnect)
+# This means you never lose results just because the browser disconnected.
+# ---------------------------------------------------------------------------
+if not st.session_state.get("results") and not st.session_state.get("_app_restored"):
+    from core.cache_manager import load_results as _load_results
+    from core.page_utils import _dict_to_result
+    _payload = _load_results()
+    if _payload and _payload.get("results"):
+        try:
+            st.session_state["results"] = [_dict_to_result(r) for r in _payload["results"]]
+            st.session_state["corpus_filenames"] = _payload.get("corpus_filenames", [])
+            st.session_state["analysis_done"] = True
+        except Exception:
+            pass  # silently ignore corrupt cache; user can re-run
+    st.session_state["_app_restored"] = True
+
 
 # ===========================================================================
 # Sidebar
