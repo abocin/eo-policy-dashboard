@@ -276,7 +276,15 @@ def discover_pdfs(folder: str | Path, recursive: bool = False) -> List[Path]:
         return []
 
     pattern = "**/*.pdf" if recursive else "*.pdf"
-    pdfs = sorted(folder.glob(pattern))
+    all_pdfs = folder.glob(pattern)
+
+    # Filter out macOS resource fork files (._filename.pdf) and other
+    # hidden files — these are created when zipping on macOS and are
+    # not real PDFs.
+    pdfs = sorted(
+        p for p in all_pdfs
+        if not p.name.startswith("._") and not p.name.startswith(".")
+    )
     logger.info("Discovered %d PDF(s) in %s (recursive=%s)", len(pdfs), folder, recursive)
     return pdfs
 
