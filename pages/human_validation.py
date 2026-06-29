@@ -164,3 +164,15 @@ def render_human_validation(results: List[SearchResult]):
             f"Showing first 100 of {len(filtered_results)}. "
             "Use filters above to narrow down, or use batch labelling."
         )
+
+
+# ---------------------------------------------------------------------------
+# Standalone page execution (when accessed directly via sidebar URL)
+# ---------------------------------------------------------------------------
+if __name__ == "__main__" or True:
+    from core.page_utils import get_results_for_page, no_results_message
+    _results = get_results_for_page()
+    if not _results:
+        no_results_message()
+    else:
+        render_human_validation(_results)

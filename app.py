@@ -1,14 +1,22 @@
 """
-app.py
-------
-Main entry point for the EO Policy Skills Dashboard.
+app.py  —  EO Policy Skills Dashboard  v1.4
+--------------------------------------------
+Main Streamlit entry point.
+
+Input modes:
+  1. Folder path (primary)   — reads PDFs directly from a server directory.
+                               Recommended for large corpora (50–200 PDFs).
+                               On Railway: mount a volume at /data, copy PDFs
+                               to /data/pdfs, set PDF_FOLDER=/data/pdfs.
+  2. File upload (secondary) — browser upload for small batches (<20 files).
 
 Run locally:
     streamlit run app.py
 
-The app is split into logical sections rendered on a single page:
-  1. Sidebar  : upload PDFs, configure thresholds, choose taxonomy
-  2. Main     : tabbed view — Results | Charts | Human Validation | Export
+Environment variables (all optional):
+    OPENAI_API_KEY   — enables OpenAI text-embedding-3-small
+    PDF_FOLDER       — pre-fills the folder path input (e.g. /data/pdfs)
+    CACHE_DIR        — override cache directory (default: /data or .cache)
 """
 
 from __future__ import annotations
@@ -25,6 +33,16 @@ import streamlit as st
 from core.taxonomy_loader import load_taxonomy, taxonomy_to_display
 from core.pipeline import process_documents
 from core.search_engine import SearchResult
+from core.cache_manager import (
+    discover_pdfs,
+    cache_stats,
+    clear_disk_cache,
+    clear_session_cache,
+    save_output,
+    list_outputs,
+    save_results,
+    OUTPUTS_DIR,
+)
 from core.exporters import (
     to_csv_bytes,
     to_excel_bytes,
@@ -41,6 +59,20 @@ from pages.human_validation import render_human_validation
 # ---- logging ---------------------------------------------------------------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Taxonomy loader — must be at module level for @st.cache_data to work
+# ---------------------------------------------------------------------------
+
+@st.cache_data(show_spinner=False)
+def _load_taxonomy_cached(yaml_bytes: Optional[bytes]) -> Dict[str, Any]:
+    """Load taxonomy from YAML bytes, or fall back to built-in file."""
+    if yaml_bytes:
+        import yaml as _yaml  # type: ignore
+        return _yaml.safe_load(yaml_bytes)
+    return load_taxonomy()
+
 
 # ---- page config -----------------------------------------------------------
 st.set_page_config(
@@ -80,7 +112,7 @@ st.markdown(
 
 
 # ===========================================================================
-# Session state initialisation
+# Session state
 # ===========================================================================
 
 def _result_key(r: SearchResult) -> str:
@@ -89,15 +121,13 @@ def _result_key(r: SearchResult) -> str:
 
 def init_session_state():
     defaults = {
-        "results": [],          # List[SearchResult]
-        "docs": [],             # List[DocumentContent]
+        "results": [],
+        "docs": [],
         "taxonomy": None,
-        "human_labels": {},     # {excerpt_hash: label_string}
+        "human_labels": {},
         "analysis_done": False,
-        # NOTE: file bytes are no longer stored in session_state.
-        # They are written to UPLOADS_DIR on disk immediately after upload.
-        # session_state only holds the list of filenames (tiny strings).
-        "uploaded_file_names": [],
+        "corpus_filenames": [],   # names of last-processed corpus
+        "corpus_source": "",      # "folder" | "upload"
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -116,52 +146,92 @@ with st.sidebar:
     st.caption("Detect space industry & EO downstream skills evidence in policy documents")
     st.divider()
 
-    # -- PDF uploader --------------------------------------------------------
-    st.subheader("1. Upload Policy Documents")
-    uploaded_files = st.file_uploader(
-        "Upload one or more PDFs",
-        type=["pdf"],
-        accept_multiple_files=True,
-        help="Upload the policy PDFs you want to analyse. Files are processed locally.",
+    # ---- 1. Document input -------------------------------------------------
+    st.subheader("1. Load Policy Documents")
+
+    _default_folder = os.environ.get("PDF_FOLDER", "")
+
+    input_mode = st.radio(
+        "Input method",
+        ["📁 Folder path", "⬆️ Upload files"],
+        help=(
+            "**Folder path** reads PDFs directly from disk — no browser upload, "
+            "no timeout, recommended for 20+ files.\n\n"
+            "**Upload files** works for small batches (<20 PDFs)."
+        ),
     )
 
-    # Write each uploaded file to disk immediately — never hold bytes in RAM.
-    # session_state stores only filenames (a few KB at most).
-    # This prevents OOM crashes when uploading large batches.
-    if uploaded_files:
-        from core.cache_manager import stage_upload, list_staged_uploads
-        existing_on_disk = set(list_staged_uploads())
-        for f in uploaded_files:
-            if f.name not in existing_on_disk:
-                stage_upload(f.name, f.read())
-        # Sync session_state filenames from disk (source of truth)
-        st.session_state["uploaded_file_names"] = list_staged_uploads()
+    uploaded_files = []
+    folder_path_input = ""
+    folder_pdfs: List[Path] = []
+    corpus_warning = ""
 
-    # Source of truth: what's on disk right now
-    from core.cache_manager import list_staged_uploads as _list_staged
-    _persisted_names = _list_staged()
-    # Keep session_state in sync (survives widget resets)
-    if _persisted_names:
-        st.session_state["uploaded_file_names"] = _persisted_names
-
-    if _persisted_names:
-        st.caption(
-            f"📄 {len(_persisted_names)} document(s) in corpus: "
-            + ", ".join(_persisted_names[:5])
-            + (f" … +{len(_persisted_names) - 5} more" if len(_persisted_names) > 5 else "")
+    # ---- Folder path mode --------------------------------------------------
+    if input_mode == "📁 Folder path":
+        folder_path_input = st.text_input(
+            "PDF folder path",
+            value=_default_folder,
+            placeholder="/data/pdfs",
+            help=(
+                "Absolute path to a directory of PDFs on the server.\n"
+                "On Railway: mount a volume at `/data`, copy PDFs to `/data/pdfs`, "
+                "then enter `/data/pdfs` here (or set `PDF_FOLDER=/data/pdfs` env var)."
+            ),
         )
-        if st.button("❌ Clear corpus", width="stretch"):
-            from core.cache_manager import clear_staged_uploads
-            clear_staged_uploads()
-            st.session_state["uploaded_file_names"] = []
-            st.session_state["analysis_done"] = False
-            st.session_state["results"] = []
-            st.session_state["docs"] = []
-            st.rerun()
-    else:
-        st.info("Upload PDFs in batches — each batch is added to the corpus.")
 
-    # -- Taxonomy selector ---------------------------------------------------
+        recursive = st.checkbox(
+            "Include subfolders",
+            value=False,
+            help="If checked, scans all subdirectories recursively.",
+        )
+
+        if folder_path_input:
+            _fpath = Path(folder_path_input)
+            if not _fpath.exists():
+                st.error(f"❌ Folder not found: `{folder_path_input}`")
+                corpus_warning = "not_found"
+            elif not _fpath.is_dir():
+                st.error(f"❌ Not a directory: `{folder_path_input}`")
+                corpus_warning = "not_dir"
+            else:
+                try:
+                    folder_pdfs = discover_pdfs(_fpath, recursive=recursive)
+                    if not folder_pdfs:
+                        st.warning("⚠️ No PDF files found in that folder.")
+                        corpus_warning = "empty"
+                    else:
+                        st.success(f"✅ {len(folder_pdfs)} PDF(s) ready")
+                        if len(folder_pdfs) > 100:
+                            st.info(
+                                f"ℹ️ Large corpus ({len(folder_pdfs)} files). "
+                                "Processing will take several minutes. "
+                                "Already-processed files will use the embedding cache."
+                            )
+                        with st.expander(f"Show file list ({len(folder_pdfs)} PDFs)"):
+                            for p in folder_pdfs:
+                                st.caption(f"• {p.name}")
+                except PermissionError:
+                    st.error(f"❌ Permission denied reading: `{folder_path_input}`")
+                    corpus_warning = "permission"
+
+    # ---- Upload mode -------------------------------------------------------
+    else:
+        uploaded_files = st.file_uploader(
+            "Upload PDFs",
+            type=["pdf"],
+            accept_multiple_files=True,
+            help="Best for small batches. Use folder path for 20+ files.",
+        )
+        if uploaded_files:
+            st.caption(f"📄 {len(uploaded_files)} file(s) selected")
+            if len(uploaded_files) > 30:
+                st.warning(
+                    "⚠️ Large upload selected. For reliability with >30 files, "
+                    "use the Folder path mode instead."
+                )
+
+    # ---- 2. Taxonomy -------------------------------------------------------
+    st.divider()
     st.subheader("2. Taxonomy")
     taxonomy_source = st.radio(
         "Taxonomy source",
@@ -176,32 +246,27 @@ with st.sidebar:
             help="Must follow the same schema as config/taxonomy.yaml",
         )
 
-    # -- Threshold overrides -------------------------------------------------
+    # ---- 3. Thresholds -----------------------------------------------------
     st.subheader("3. Thresholds")
     valid_threshold = st.slider(
-        "Valid evidence threshold",
-        min_value=0.20,
-        max_value=0.90,
-        value=0.50,
-        step=0.05,
+        "Valid evidence threshold", 0.20, 0.90, 0.50, 0.05,
         help="Final score above this → VALID EVIDENCE",
     )
     weak_threshold = st.slider(
-        "Weak evidence threshold",
-        min_value=0.10,
-        max_value=0.80,
-        value=0.35,
-        step=0.05,
+        "Weak evidence threshold", 0.10, 0.80, 0.35, 0.05,
         help="Final score above this → WEAK EVIDENCE",
     )
 
-    # -- OpenAI optional -----------------------------------------------------
-    st.subheader("4. Optional: OpenAI Re-ranking")
+    # ---- 4. OpenAI ---------------------------------------------------------
+    st.subheader("4. Optional: OpenAI Embeddings")
     openai_key_input = st.text_input(
         "OpenAI API key (optional)",
         type="password",
-        help="If provided, top results are re-ranked with text-embedding-3-small. "
-             "Leave blank to use SBERT only (free, offline).",
+        help=(
+            "Enables OpenAI text-embedding-3-small for semantic search. "
+            "Leave blank for 100% offline SBERT mode. "
+            "Can also be set via OPENAI_API_KEY environment variable."
+        ),
     )
     if openai_key_input:
         os.environ["OPENAI_API_KEY"] = openai_key_input
@@ -210,122 +275,127 @@ with st.sidebar:
 
     st.divider()
 
-    # -- Run button ----------------------------------------------------------
-    _has_corpus = bool(_persisted_names)
+    # ---- Run button --------------------------------------------------------
+    _has_input = bool(folder_pdfs) or bool(uploaded_files)
     run_analysis = st.button(
         "🔍 Run Analysis",
         type="primary",
-        disabled=not _has_corpus,
+        disabled=not _has_input,
         width="stretch",
     )
+    if not _has_input and not corpus_warning:
+        st.caption("Select a folder or upload files to enable.")
 
-    # -- Reset button --------------------------------------------------------
+    # ---- Reset button ------------------------------------------------------
     if st.button("🔄 Clear & Reset", width="stretch"):
-        from core.cache_manager import clear_session_cache
         clear_session_cache()
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
 
-
-# ===========================================================================
-# Load taxonomy
-# ===========================================================================
-
-@st.cache_data(show_spinner=False)
-def _load_taxonomy_cached(yaml_bytes: Optional[bytes]) -> Dict[str, Any]:
-    if yaml_bytes:
-        import tempfile, yaml as _yaml
-        data = _yaml.safe_load(yaml_bytes)
-        return data
-    return load_taxonomy()
-
-
-taxonomy_bytes = custom_taxonomy_file.read() if custom_taxonomy_file else None
-taxonomy = _load_taxonomy_cached(taxonomy_bytes)
-
-# ── Search mode badge (shown in sidebar) ─────────────────────────────────────
-_scfg = taxonomy.get("search", {})
-_use_sbert = _scfg.get("use_sbert", True)
-_use_oa_cfg = _scfg.get("use_openai", False)
-_has_key = bool(os.environ.get("OPENAI_API_KEY") or "")
-_use_ce = _scfg.get("use_cross_encoder", False)
-
-if not _use_sbert and _has_key:
-    _mode_label = "🟢 OpenAI-only"
-    _mode_help = "Semantic search via OpenAI text-embedding-3-small. No local models loaded. (~$0.01–0.05 per 30-PDF run)"
-elif _use_sbert and _use_ce and _has_key:
-    _mode_label = "🔵 Hybrid (SBERT + CrossEncoder + OpenAI)"
-    _mode_help = "Full pipeline — best quality, needs >2GB RAM."
-elif _use_sbert and _has_key:
-    _mode_label = "🔵 SBERT + OpenAI re-ranking"
-    _mode_help = "Local SBERT encoding with OpenAI re-ranking."
-elif _use_sbert:
-    _mode_label = "🟡 SBERT-only (offline)"
-    _mode_help = "Local semantic search — no API key required."
-else:
-    _mode_label = "🔴 Keyword-only"
-    _mode_help = "use_sbert=false but OPENAI_API_KEY not set — only keyword matching active."
-
-with st.sidebar:
     st.divider()
-    st.markdown(f"**Search mode**")
+
+    # ---- Search mode badge -------------------------------------------------
+    st.markdown("**Search mode**")
+
+    taxonomy_bytes = custom_taxonomy_file.read() if custom_taxonomy_file else None
+    taxonomy = _load_taxonomy_cached(taxonomy_bytes)
+
+    _scfg = taxonomy.get("search", {})
+    _use_sbert = _scfg.get("use_sbert", True)
+    _has_key = bool(os.environ.get("OPENAI_API_KEY") or "")
+    _use_ce = _scfg.get("use_cross_encoder", False)
+
+    if not _use_sbert and _has_key:
+        _mode_label = "🟢 OpenAI-only"
+        _mode_help = "Semantic search via OpenAI text-embedding-3-small. (~$0.01–0.05 / 30-PDF run)"
+    elif _use_sbert and _use_ce and _has_key:
+        _mode_label = "🔵 Hybrid (SBERT + CrossEncoder + OpenAI)"
+        _mode_help = "Full pipeline — best quality, needs >2 GB RAM."
+    elif _use_sbert and _has_key:
+        _mode_label = "🔵 SBERT + OpenAI re-ranking"
+        _mode_help = "Local SBERT encoding with OpenAI re-ranking."
+    elif _use_sbert:
+        _mode_label = "🟡 SBERT-only (offline)"
+        _mode_help = "Local semantic search — no API key required."
+    else:
+        _mode_label = "🔴 Keyword-only"
+        _mode_help = "use_sbert=false and no OPENAI_API_KEY — keyword matching only."
+
     st.info(f"{_mode_label}  \n{_mode_help}")
 
-    # -- Embedding cache stats -----------------------------------------------
+    # ---- Embedding cache stats ---------------------------------------------
     st.divider()
     st.markdown("**Embedding cache**")
     try:
-        from core.cache_manager import cache_stats, clear_disk_cache, CACHE_DIR
         _cs = cache_stats()
-        _persist_label = "🟢 Persistent (Railway volume)" if _cs["is_persistent"] else "🟡 Ephemeral (local .cache)"
+        _persist_icon = "🟢" if _cs["is_persistent"] else "🟡"
+        _persist_label = "Persistent (Railway volume)" if _cs["is_persistent"] else "Ephemeral (local .cache)"
         st.caption(
-            f"{_persist_label}  \n"
-            f"`{_cs['cache_dir']}`  \n"
-            f"{_cs['unique_docs']} doc(s) cached · {_cs['cached_files']} file(s) · {_cs['total_size_mb']} MB"
+            f"{_persist_icon} {_persist_label}  \n"
+            f"`{_cs['base_dir']}`  \n"
+            f"{_cs['unique_docs']} doc(s) · {_cs['cached_files']} embedding file(s) · "
+            f"{_cs['total_size_mb']} MB"
         )
         if _cs["cached_files"] > 0:
-            if st.button("🗑️ Clear disk cache", width="stretch"):
+            if st.button("🗑️ Clear embedding cache", width="stretch"):
                 n = clear_disk_cache()
                 st.success(f"Cleared {n} cached embedding file(s).")
                 st.rerun()
     except Exception as _e:
         st.caption(f"Cache info unavailable: {_e}")
 
-# Override thresholds from sidebar sliders
+
+# Apply threshold overrides
 taxonomy.setdefault("thresholds", {})
 taxonomy["thresholds"]["valid_match"] = valid_threshold
 taxonomy["thresholds"]["weak_match"] = weak_threshold
-
 st.session_state["taxonomy"] = taxonomy
 
 
 # ===========================================================================
-# Run the pipeline when the user clicks Run Analysis
+# Run the pipeline
 # ===========================================================================
 
-if run_analysis and _persisted_names:
-    # Read file bytes from disk staging area — never from RAM / session_state.
-    from core.cache_manager import read_staged_upload
-    file_pairs = [
-        (name, read_staged_upload(name))
-        for name in _persisted_names
-        if read_staged_upload(name) is not None
-    ]
+if run_analysis:
+    # Build list of (filename, path_or_bytes) from whichever input mode is active.
+    # For folder mode: we pass paths directly — pipeline reads bytes on demand.
+    # For upload mode: read bytes here (small batch, acceptable RAM use).
+    file_pairs: List[tuple] = []
 
-    progress_placeholder = st.empty()
+    if folder_pdfs:
+        # Read each PDF from disk — one at a time inside the pipeline loop.
+        # We read bytes here but the pipeline immediately discards them per-doc.
+        file_pairs = [(p.name, p.read_bytes()) for p in folder_pdfs]
+        st.session_state["corpus_source"] = "folder"
+    elif uploaded_files:
+        file_pairs = [(f.name, f.read()) for f in uploaded_files]
+        st.session_state["corpus_source"] = "upload"
 
-    def update_status(msg: str):
-        progress_placeholder.info(f"⏳ {msg}")
+    if file_pairs:
+        n = len(file_pairs)
+        progress_bar = st.progress(0, text="Starting…")
+        status_placeholder = st.empty()
+        _processed_count = [0]
 
-    with st.spinner("Running analysis pipeline…"):
+        def update_status(msg: str):
+            status_placeholder.info(f"⏳ {msg}")
+            # Estimate progress from the message format "[i/n]"
+            try:
+                part = msg.split("[")[1].split("]")[0]
+                i, total = part.split("/")
+                progress_bar.progress(int(i) / int(total), text=msg)
+                _processed_count[0] = int(i)
+            except Exception:
+                pass
+
         try:
             results, docs = process_documents(
                 uploaded_files=file_pairs,
                 taxonomy=taxonomy,
                 status_callback=update_status,
             )
-            # Apply human labels carried over from previous run
+
             for r in results:
                 key = _result_key(r)
                 r.human_label = st.session_state["human_labels"].get(key, "")
@@ -333,37 +403,72 @@ if run_analysis and _persisted_names:
             st.session_state["results"] = results
             st.session_state["docs"] = docs
             st.session_state["analysis_done"] = True
-            progress_placeholder.empty()
+            st.session_state["corpus_filenames"] = [f for f, _ in file_pairs]
+
+            progress_bar.progress(1.0, text="Complete")
+            status_placeholder.empty()
+
+            # Persist results to disk so sidebar pages can load them
+            save_results(results, docs, st.session_state["corpus_filenames"])
+
+            # Auto-save outputs to persistent directory
+            ts = pd.Timestamp.now().strftime("%Y%m%d_%H%M")
+            try:
+                save_output(f"eo_evidence_{ts}.csv", to_csv_bytes(results))
+                save_output(f"eo_evidence_{ts}.xlsx", to_excel_bytes(results))
+                logger.info("Auto-saved CSV and Excel to %s", OUTPUTS_DIR)
+            except Exception as _save_exc:
+                logger.warning("Auto-save failed: %s", _save_exc)
+
             st.success(
-                f"✅ Analysis complete — {len(results)} evidence excerpts found "
-                f"across {len(docs)} document(s)."
+                f"✅ Analysis complete — **{len(results)}** evidence excerpts "
+                f"across **{len(docs)}** document(s).  \n"
+                f"Outputs auto-saved to `{OUTPUTS_DIR}`."
             )
+
+        except MemoryError:
+            progress_bar.empty()
+            status_placeholder.empty()
+            st.error(
+                "❌ Out of memory processing the corpus.  \n"
+                "Try reducing the number of PDFs, or switch to OpenAI-only mode "
+                "(set `use_sbert: false` in taxonomy.yaml) which uses ~5× less RAM."
+            )
+            logger.exception("MemoryError in pipeline")
+
         except Exception as exc:
-            progress_placeholder.empty()
-            st.error(f"Pipeline error: {exc}")
+            progress_bar.empty()
+            status_placeholder.empty()
+            st.error(f"❌ Pipeline error: {exc}")
             logger.exception("Pipeline failed")
 
 
 # ===========================================================================
-# Main content area
+# Main content
 # ===========================================================================
 
 results: List[SearchResult] = st.session_state.get("results", [])
 docs = st.session_state.get("docs", [])
 
 if not st.session_state["analysis_done"]:
-    # Welcome screen
+    # ---- Welcome screen ----------------------------------------------------
     st.title("🛰️ EO Policy Skills Dashboard")
     st.markdown(
         """
-        **Detect evidence of space industry and Earth Observation downstream skills needs
-        in policy documents.**
+        **Detect evidence of space industry and Earth Observation downstream skills
+        needs in policy documents.**
 
         ### How to use
-        1. Upload one or more PDF policy documents using the sidebar
-        2. Choose or upload a skills taxonomy (default covers EO, Copernicus, GIS, digital skills)
-        3. Adjust confidence thresholds if needed
-        4. Click **Run Analysis**
+
+        **Option A — Folder path (recommended for large corpora)**
+        1. Place your PDF files in a folder accessible to the server (e.g. `/data/pdfs` on Railway)
+        2. Enter the folder path in the sidebar
+        3. Click **Run Analysis**
+
+        **Option B — File upload (small batches)**
+        1. Select "Upload files" in the sidebar
+        2. Upload up to ~20 PDFs
+        3. Click **Run Analysis**
 
         ### What this dashboard detects
         | Theme | Examples |
@@ -375,20 +480,43 @@ if not st.session_state["analysis_done"]:
         | Skills Gaps & Workforce | upskilling, reskilling, capacity building |
         | Policy Support for Downstream | smart specialisation, S3, downstream applications |
 
-        > **Security note:** All processing runs locally. Your PDF contents never leave your machine.
+        > **Security:** All processing runs on the server. PDF contents never leave your deployment.
         > The OpenAI API key field is optional — leave blank for 100% offline analysis.
         """
     )
 
-    # Show taxonomy preview
     with st.expander("Preview active taxonomy"):
         for theme, kws in taxonomy_to_display(taxonomy).items():
             st.markdown(f"**{theme}**")
             st.caption(", ".join(kws[:8]) + ("…" if len(kws) > 8 else ""))
 
+    # Show any previously auto-saved outputs
+    _saved = list_outputs()
+    if _saved:
+        with st.expander(f"📁 Previously saved outputs ({len(_saved)} files)"):
+            for out_path in _saved[:20]:
+                col_a, col_b = st.columns([3, 1])
+                col_a.caption(f"`{out_path.name}`")
+                col_b.download_button(
+                    "⬇️",
+                    data=out_path.read_bytes(),
+                    file_name=out_path.name,
+                    key=f"dl_{out_path.name}",
+                )
+
 else:
     # ---- Summary metrics ---------------------------------------------------
     df_all = results_to_dataframe(results)
+    corpus_src = st.session_state.get("corpus_source", "")
+    corpus_names = st.session_state.get("corpus_filenames", [])
+
+    if corpus_names:
+        _src_icon = "📁" if corpus_src == "folder" else "⬆️"
+        st.caption(
+            f"{_src_icon} Corpus: {len(corpus_names)} document(s) — "
+            + ", ".join(corpus_names[:5])
+            + (f" … +{len(corpus_names)-5} more" if len(corpus_names) > 5 else "")
+        )
 
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Documents", len(docs))
@@ -408,7 +536,6 @@ else:
 
     st.divider()
 
-    # ---- Tabs --------------------------------------------------------------
     tab_results, tab_charts, tab_validate, tab_export = st.tabs(
         ["📋 Results", "📊 Charts", "🏷️ Human Validation", "📤 Export"]
     )
@@ -428,10 +555,9 @@ else:
             "All exports include your current human validation labels. "
             "Re-run the analysis after changing thresholds to update scores."
         )
-        ts = pd.Timestamp.now().strftime('%Y%m%d_%H%M')
+        ts = pd.Timestamp.now().strftime("%Y%m%d_%H%M")
 
         st.markdown("#### 📄 Evidence Reports")
-        st.caption("Formatted reports grouping all valid and weak evidence by document and theme.")
         rep_col1, rep_col2 = st.columns(2)
 
         with rep_col1:
@@ -462,7 +588,6 @@ else:
 
         st.divider()
         st.markdown("#### 📊 Data Exports")
-        st.caption("Raw data exports for Power BI, further analysis, or D3 visualisation.")
         col_a, col_b = st.columns(2)
 
         with col_a:
@@ -473,13 +598,18 @@ else:
                 mime="text/csv",
                 width="stretch",
             )
-            st.download_button(
-                label="⬇️ Excel Data Workbook",
-                data=to_excel_bytes(results),
-                file_name=f"eo_policy_data_{ts}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                width="stretch",
-            )
+            try:
+                _excel_data = to_excel_bytes(results)
+                st.download_button(
+                    label="⬇️ Excel Data Workbook",
+                    data=_excel_data,
+                    file_name=f"eo_policy_data_{ts}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    width="stretch",
+                )
+            except Exception as _exc:
+                st.error(f"Excel export error: {_exc}")
+                logger.exception("to_excel_bytes failed")
 
         with col_b:
             st.download_button(
@@ -499,6 +629,22 @@ else:
             )
 
         st.divider()
+        st.markdown(f"#### 📁 Server outputs  \n`{OUTPUTS_DIR}`")
+        _saved = list_outputs()
+        if _saved:
+            st.caption(f"{len(_saved)} file(s) auto-saved to the server outputs directory.")
+            for out_path in _saved[:20]:
+                col_x, col_y = st.columns([3, 1])
+                col_x.caption(f"`{out_path.name}`")
+                col_y.download_button(
+                    "⬇️",
+                    data=out_path.read_bytes(),
+                    file_name=out_path.name,
+                    key=f"dl_out_{out_path.name}",
+                )
+        else:
+            st.caption("No auto-saved outputs yet.")
+
         with st.expander("Preview D3 JSON (first 50 lines)"):
             j = to_d3_json(results)
             st.code("\n".join(j.splitlines()[:50]), language="json")

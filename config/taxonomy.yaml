@@ -443,3 +443,61 @@ search:
   top_k_sentences: 5
   chunk_size: 400
   chunk_overlap: 80
+
+
+# ============================================================
+# Stage-2 EO Capacity-Building Relevance Filter
+# ============================================================
+# These reference sentences define what "EO capacity building"
+# looks like. Every evidence excerpt found in Stage 1 is scored
+# against these sentences via cosine similarity (OpenAI embeddings).
+#
+# The highest similarity across all sentences becomes the
+# `eo_relevance_score` (0.0–1.0) for that excerpt.
+#
+# Users can filter results in the dashboard using the
+# "🛰️ EO Capacity Filter" toggle in Results Table.
+#
+# Recommended threshold: 0.35 (default). Raise to 0.50+ for
+# stricter filtering. Set to 0.0 to see all scored results.
+#
+# Add or remove sentences freely — no code changes needed.
+# Multilingual sentences are supported.
+# ============================================================
+
+eo_relevance:
+  sentences:
+    # --- English core ---
+    - "training professionals to use Earth Observation data"
+    - "capacity building for Earth Observation downstream applications"
+    - "skills development for satellite data analysis"
+    - "uptake of Earth Observation data by end users and organisations"
+    - "educating practitioners in remote sensing and geospatial analysis"
+    - "building institutional capacity to exploit EO data products"
+    - "policy support for Earth Observation data literacy and awareness"
+    - "workforce training in satellite imagery interpretation"
+    - "investing in human capital for EO downstream services"
+    - "fostering competencies in geospatial data and Earth Observation"
+    - "need for skilled professionals in satellite data processing"
+    - "encouraging use of Copernicus and EO services in public sector"
+    - "digital skills for working with Earth Observation and remote sensing"
+    - "knowledge transfer and training in space data applications"
+    - "developing expertise in EO data products for downstream markets"
+    # --- Dutch (NL) ---
+    - "opleiding voor het gebruik van aardobservatie data"
+    - "capaciteitsopbouw voor aardobservatie toepassingen"
+    - "vaardigheidsontwikkeling voor satellietgegevens analyse"
+    - "bevorderen van aardobservatie kennis en vaardigheden"
+    - "opbouw van expertise in ruimtevaart en aardobservatie"
+    # --- Greek (EL) ---
+    - "κατάρτιση για χρήση δεδομένων παρατήρησης γης"
+    - "ανάπτυξη ικανοτήτων για εφαρμογές παρατήρησης γης"
+    - "εκπαίδευση στην χρήση δορυφόρων δεδομένων και εργαλείων"
+    # --- Portuguese (PT) ---
+    - "formação em observação da Terra e dados de satélite"
+    - "capacitação para aplicações de observação da Terra"
+    - "desenvolvimento de competências em dados de observação por satélite"
+    # --- Italian (IT) ---
+    - "formazione nell'uso dei dati di osservazione della Terra"
+    - "sviluppo delle competenze per applicazioni EO downstream"
+    - "potenziamento delle capacità nell'uso dei dati satellitari"

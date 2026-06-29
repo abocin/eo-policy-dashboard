@@ -56,6 +56,7 @@ class SearchResult:
     human_label: str = ""
     matched_keyword: str = ""
     chunk_index: int = -1
+    eo_relevance_score: float = 0.0  # Stage-2 EO capacity-building re-rank score
 
 
 # ---------------------------------------------------------------------------

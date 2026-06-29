@@ -2,23 +2,22 @@
 
 A Streamlit web application that analyses policy documents for evidence of **space industry and Earth Observation downstream skills needs**.
 
-Built as a production-ready refactor of the `pilot_policy_hybrid_pipeline_v4.1` Jupyter notebook, adapted for policy-to-skills evidence mining rather than pilot-to-policy matching.
+Built as a production-ready refactor of the `pilot_policy_hybrid_pipeline_v4.1` Jupyter notebook.
 
 ---
 
 ## What It Does
 
-Upload PDF policy documents → the app automatically:
+Point the app at a folder of PDF policy documents → it automatically:
 
 1. Extracts and cleans text (per-page, with page number tracking)
 2. Splits into sentences for precise excerpt extraction
 3. Runs **keyword search** against the EO skills taxonomy
-4. Runs **semantic search** (SBERT, offline, no API needed)
-5. Refines results with a **CrossEncoder reranker**
-6. Optionally re-ranks with **OpenAI embeddings** (API key optional, via env var only)
-7. Classifies each excerpt: `VALID EVIDENCE` / `WEAK EVIDENCE` / `NOT RELEVANT`
-8. Lets you **human-validate** each excerpt in the dashboard
-9. Exports to **CSV** (Power BI), **Excel**, **JSON** (D3/network), and **Markdown report**
+4. Runs **semantic search** (SBERT offline, or OpenAI via env var)
+5. Classifies each excerpt: `VALID EVIDENCE` / `WEAK EVIDENCE` / `NOT RELEVANT`
+6. Lets you **human-validate** each excerpt in the dashboard
+7. Exports to **CSV**, **Excel**, **JSON**, and **Markdown report**
+8. Auto-saves exports to a persistent server-side outputs directory
 
 ### Skills Themes Detected
 
@@ -34,150 +33,201 @@ Upload PDF policy documents → the app automatically:
 
 ---
 
+## Why Folder Path Instead of Browser Upload
+
+| | Browser upload | Folder path |
+|---|---|---|
+| File limit | ~20 reliable | Unlimited |
+| Timeout risk | High (websocket) | None |
+| Memory impact | All files in RAM | One file at a time |
+| Large corpora (130 PDFs) | ❌ Crashes | ✅ Works |
+| Requires server setup | No | Yes (volume mount) |
+
+For any corpus larger than ~20 PDFs, the folder path mode is the only reliable option.
+Browser upload is fine for quick tests with a handful of documents.
+
+---
+
 ## Project Structure
 
 ```
 eo_policy_dashboard/
 ├── app.py                          # Main Streamlit entry point
 ├── requirements.txt
-├── README.md
-├── .gitignore
+├── .env.example                    # Environment variable template
+├── railway.toml                    # Railway deployment config
+├── Procfile                        # Start command
 │
-├── core/                           # All business logic (no Streamlit)
+├── core/
 │   ├── pdf_extractor.py            # PDF → DocumentContent (pdfminer + PyPDF2 fallback)
-│   ├── chunker.py                  # Document → sentences + sliding-window chunks
-│   ├── search_engine.py            # Keyword + SBERT + CrossEncoder + OpenAI pipeline
-│   ├── pipeline.py                 # Pipeline orchestrator (called from app.py)
-│   ├── taxonomy_loader.py          # Load & validate taxonomy YAML
-│   ├── cache_manager.py            # Session + disk caching
-│   └── exporters.py                # CSV / Excel / JSON / Markdown exports
+│   ├── chunker.py                  # Document → sentences
+│   ├── search_engine.py            # Keyword + SBERT + OpenAI pipeline
+│   ├── pipeline.py                 # Pipeline orchestrator
+│   ├── cache_manager.py            # Two-layer cache + directory management
+│   ├── taxonomy_loader.py          # YAML taxonomy loader
+│   └── exporters.py                # CSV / Excel / PDF / JSON / Markdown
 │
-├── pages/                          # Streamlit UI components
-│   ├── results_table.py            # Filtered evidence card view
-│   ├── charts.py                   # Plotly visualisations (5 chart types)
-│   └── human_validation.py         # Per-excerpt labelling interface
+├── pages/
+│   ├── results_table.py            # Paginated evidence card view
+│   ├── charts.py                   # Plotly charts
+│   └── human_validation.py        # Manual labelling UI
 │
 ├── config/
-│   └── taxonomy.yaml               # EO skills search taxonomy (editable)
-│
-├── tests/
-│   └── test_pipeline.py            # pytest unit tests (no Streamlit required)
+│   └── taxonomy.yaml               # EO skills taxonomy (EN + NL + EL + PT + IT)
 │
 └── .streamlit/
-    ├── config.toml                 # Dark theme + upload size settings
-    └── secrets.toml.example        # Template — copy to secrets.toml, never commit
+    └── config.toml                 # Theme, upload limits
 ```
 
 ---
 
-## Quick Start — Local
-
-### 1. Clone / copy the project
+## Local Development
 
 ```bash
-git clone <your-repo-url>
-cd eo_policy_dashboard
-```
+git clone https://github.com/abocin/eo-policy-dashboard.git
+cd eo-policy-dashboard
 
-### 2. Create a virtual environment
-
-```bash
 python -m venv .venv
-source .venv/bin/activate      # macOS / Linux
-# .venv\Scripts\activate       # Windows
-```
-
-### 3. Install dependencies
-
-```bash
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-```
 
-> **First run** will download the SBERT model (~85 MB) and CrossEncoder (~85 MB) from Hugging Face. Subsequent runs use the local cache.
+# Optional: set environment variables
+cp .env.example .env
+# edit .env with your values
 
-### 4. (Optional) Set your OpenAI key
-
-```bash
-# macOS/Linux
-export OPENAI_API_KEY="sk-..."
-
-# Or create .streamlit/secrets.toml (copy from .streamlit/secrets.toml.example)
-```
-
-### 5. Run the dashboard
-
-```bash
 streamlit run app.py
 ```
 
-Open `http://localhost:8501` in your browser.
+The app opens at http://localhost:8501.
 
 ---
 
-## Deployment
+## Environment Variables
 
-### Streamlit Community Cloud (free tier)
+| Variable | Required | Example | Description |
+|---|---|---|---|
+| `OPENAI_API_KEY` | No | `sk-proj-...` | Enables OpenAI text-embedding-3-small |
+| `PDF_FOLDER` | No | `/data/pdfs` | Pre-fills the folder path input |
+| `CACHE_DIR` | No | `/data/cache` | Override embedding cache directory |
 
-1. Push your code to a **public** GitHub repository  
-   (make sure `.streamlit/secrets.toml` is in `.gitignore`)
-
-2. Go to [share.streamlit.io](https://share.streamlit.io) → **New app**
-
-3. Select your repo, branch, and set the main file to `app.py`
-
-4. Under **Advanced settings → Secrets**, add:
-   ```toml
-   OPENAI_API_KEY = "sk-..."   # optional
-   ```
-
-5. Click **Deploy** — the app is live in ~2 minutes
-
-> **Note on model size:** Streamlit Community Cloud has a 1 GB RAM limit. The default SBERT model (`all-MiniLM-L6-v2`) is well within this. The CrossEncoder is lightweight too. Do not use `all-mpnet-base-v2` on the free tier.
+Copy `.env.example` to `.env` for local use. On Railway, set these in the **Variables** tab.
 
 ---
 
-### Railway (recommended for production)
+## Railway Deployment (Production)
 
-Railway auto-detects Python via Railpack — no Nixpacks or Dockerfile needed.
+### Why Railway
 
-#### 1. Push to GitHub and create a Railway project
+Railway auto-detects Python via Railpack — no Dockerfile needed. It supports persistent volumes, which are required for both the PDF folder and the embedding cache.
+
+### Step 1 — Push to GitHub and create a Railway project
 
 ```bash
 git push origin main
 ```
 
-In the [Railway dashboard](https://railway.app): **New project → Deploy from GitHub repo** → select `eo-policy-dashboard`.
+In the [Railway dashboard](https://railway.app):
+**New project → Deploy from GitHub repo → select `eo-policy-dashboard`**
 
-#### 2. Set environment variables
+### Step 2 — Add a persistent volume
 
-In **Variables** (Railway dashboard):
+A volume is required for two things:
+- Storing your PDF corpus (`/data/pdfs`)
+- Persisting embedding vectors across redeploys (`/data/cache`)
 
-| Variable | Value | Notes |
-|---|---|---|
-| `OPENAI_API_KEY` | `sk-...` | Required for OpenAI-only mode |
-| `CACHE_DIR` | `/data` | Set this **after** adding a volume (see below) |
-
-#### 3. (Recommended) Add a persistent volume for embedding cache
-
-Without a volume, embedding vectors are recomputed from scratch on every redeploy (~5 min, ~$0.05). With a volume, cached embeddings survive redeploys — cache hits take ~10 seconds and cost $0.
-
-**Steps:**
-
-1. In Railway dashboard → your service → **Volumes** tab → **Add Volume**
+**In Railway dashboard:**
+1. Your service → **Volumes** tab → **Add Volume**
 2. Set mount path: `/data`
-3. Go to **Variables** and add: `CACHE_DIR = /data`
-4. Redeploy the service
+3. Click **Create**
 
-The cache manager resolves the directory automatically:
-- `CACHE_DIR` env var → highest priority (Railway volume)
-- `/data` if it exists and is writable → Railway default volume path
-- `.cache` → local ephemeral fallback
+### Step 3 — Set environment variables
 
-Embedding files are stored as `{file_hash}_{theme_slug}.npy` under `$CACHE_DIR/embeddings/`. The sidebar shows cache status (persistent vs. ephemeral), number of cached documents, and total disk size.
+In **Variables** tab:
 
-#### 4. Deploy
+| Variable | Value |
+|---|---|
+| `PDF_FOLDER` | `/data/pdfs` |
+| `CACHE_DIR` | `/data/cache` |
+| `OPENAI_API_KEY` | `sk-proj-...` (if using OpenAI) |
 
-Railway deploys automatically on every `git push`. The Procfile configures the start command:
+### Step 4 — Copy PDFs into the Railway volume
+
+Railway volumes are not accessible via SFTP or FTP directly. Use one of these methods:
+
+#### Method A — Railway CLI (recommended)
+
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+# or: brew install railway
+
+railway login
+railway link   # select your project
+
+# Open a shell in the running container
+railway shell
+
+# Inside the container shell:
+mkdir -p /data/pdfs
+# Then use the upload method below to get files there
+```
+
+#### Method B — Zip upload via Streamlit (one-time)
+
+Add a temporary "admin" page to your app that accepts a zip file and extracts it:
+
+```python
+# In a temporary admin script (delete after use)
+import streamlit as st, zipfile, io, pathlib
+f = st.file_uploader("Upload PDFs as zip", type="zip")
+if f:
+    z = zipfile.ZipFile(io.BytesIO(f.read()))
+    pathlib.Path("/data/pdfs").mkdir(parents=True, exist_ok=True)
+    z.extractall("/data/pdfs")
+    st.success(f"Extracted {len(z.namelist())} files")
+```
+
+Deploy this temporarily, upload your zip, then remove it.
+
+#### Method C — GitHub release asset
+
+1. Create a GitHub release and attach a `pdfs.zip` as a release asset
+2. In your app startup or a Railway cron job, download and extract it:
+
+```python
+import urllib.request, zipfile, io, pathlib
+url = "https://github.com/abocin/eo-policy-dashboard/releases/download/v1.0/pdfs.zip"
+pathlib.Path("/data/pdfs").mkdir(parents=True, exist_ok=True)
+data = urllib.request.urlopen(url).read()
+zipfile.ZipFile(io.BytesIO(data)).extractall("/data/pdfs")
+```
+
+#### Method D — S3 / Google Drive sync
+
+Store PDFs in S3 or Google Drive and add a sync step to your startup:
+
+```bash
+# With rclone (add to Procfile before streamlit command)
+rclone copy gdrive:your-folder /data/pdfs && streamlit run app.py ...
+```
+
+#### Method E — Direct HTTP download
+
+If your PDFs are accessible via URL, download them with Python in a startup script:
+
+```python
+import urllib.request, pathlib
+urls = ["https://example.com/policy1.pdf", ...]
+out = pathlib.Path("/data/pdfs")
+out.mkdir(parents=True, exist_ok=True)
+for url in urls:
+    name = url.split("/")[-1]
+    urllib.request.urlretrieve(url, out / name)
+```
+
+### Step 5 — Deploy
+
+Railway redeploys automatically on every `git push`. The Procfile sets the start command:
 
 ```
 web: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
@@ -185,127 +235,93 @@ web: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
 
 ---
 
-### Hugging Face Spaces (free, GPU optional)
+## Embedding Cache
 
-1. Create a new Space at [huggingface.co/spaces](https://huggingface.co/spaces)
-   - SDK: **Streamlit**
-   - Hardware: CPU Basic (free) or upgrade for faster inference
+The first time you run analysis on a corpus, sentence embeddings are computed (via OpenAI API or SBERT) and saved as `.npy` files under `$CACHE_DIR/embeddings/`.
 
-2. In your Space's **Files**, upload all project files maintaining the folder structure
+On subsequent runs (or redeploys) the cached vectors are loaded from disk — **no API calls, ~10 seconds instead of ~5 minutes, $0 cost**.
 
-3. Add a `packages.txt` file if you need system-level dependencies (typically not needed)
-
-4. Set your OpenAI key under **Settings → Repository secrets** as `OPENAI_API_KEY`
-
-5. The Space builds automatically and is accessible at `https://huggingface.co/spaces/<your-username>/<space-name>`
-
----
-
-### Render (free or paid)
-
-1. Create a `render.yaml` in the project root:
-
-```yaml
-services:
-  - type: web
-    name: eo-policy-dashboard
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
-    envVars:
-      - key: OPENAI_API_KEY
-        sync: false    # set manually in Render dashboard
+Cache directory layout:
+```
+/data/cache/
+  embeddings/     ← per-document, per-theme sentence vectors
+  outputs/        ← auto-saved CSV/Excel/JSON exports
+  uploads/        ← optional browser-upload staging
 ```
 
-2. Push to GitHub and connect the repo in [render.com](https://render.com)
-
-3. Set `OPENAI_API_KEY` in Render's environment variables
+The sidebar shows cache status (persistent/ephemeral), number of cached documents, and disk usage. A "Clear embedding cache" button is provided for when you change the taxonomy or update documents.
 
 ---
 
-### Docker
+## Memory and Performance
 
-```dockerfile
-FROM python:3.11-slim
+| Mode | RAM usage | Speed | Cost |
+|---|---|---|---|
+| OpenAI-only (`use_sbert: false`) | ~200 MB | ~5 min / 30 PDFs (first run) | ~$0.05 |
+| OpenAI + disk cache | ~200 MB | ~10 sec (subsequent runs) | $0 |
+| SBERT-only (offline) | ~700 MB | ~10 min / 30 PDFs | $0 |
+| Keyword-only | ~100 MB | ~1 min / 30 PDFs | $0 |
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+For Railway's default 512 MB RAM: use OpenAI-only mode (`use_sbert: false` in taxonomy.yaml).
+For Railway's 2–8 GB RAM (paid plan): SBERT mode works fine.
 
-COPY . .
+The pipeline processes **one document at a time** — peak memory is always 1 doc, not the full corpus.
 
-EXPOSE 8501
+---
 
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+## Troubleshooting
 
-ENTRYPOINT ["streamlit", "run", "app.py", \
-            "--server.port=8501", \
-            "--server.address=0.0.0.0"]
+### Folder not found
 ```
-
-```bash
-docker build -t eo-policy-dashboard .
-docker run -p 8501:8501 -e OPENAI_API_KEY="sk-..." eo-policy-dashboard
+❌ Folder not found: /data/pdfs
 ```
+- Volume is not mounted — check Railway dashboard → Volumes
+- Wrong path — confirm the mount point matches what you entered
+- Fix: set `PDF_FOLDER=/data/pdfs` as env var so the sidebar pre-fills correctly
 
----
-
-## Configuration
-
-### Editing the taxonomy
-
-Edit `config/taxonomy.yaml` to:
-- Add new skill themes
-- Add or remove keywords
-- Adjust semantic search queries
-- Tune scoring thresholds
-
-You can also upload a custom YAML directly in the sidebar at runtime — no restart needed.
-
-### Tuning thresholds
-
-| Parameter | Default | Effect |
-|---|---|---|
-| `valid_match` | 0.50 | Final score ≥ this → VALID EVIDENCE |
-| `weak_match` | 0.35 | Final score ≥ this → WEAK EVIDENCE |
-| `top_k_sentences` | 5 | Max sentences returned per theme per doc |
-
-The sidebar sliders override these at runtime.
-
----
-
-## Running Tests
-
-```bash
-pip install pytest
-pytest tests/ -v
+### Permission denied
 ```
+❌ Permission denied reading: /data/pdfs
+```
+- The Railway volume may not be writable by the app user
+- Fix: check volume mount permissions in Railway dashboard
 
-Tests cover: text cleaning, sentence splitting, chunking, keyword search, classification thresholds, taxonomy loading, and export formatting. All tests run without GPU or API keys.
+### PDFs not visible after deployment
+- The volume was freshly mounted — it is empty until you copy files into it
+- See Step 4 above for methods to copy PDFs into `/data/pdfs`
 
----
+### Volume not mounted correctly
+- `cache_stats()` in the sidebar shows "🟡 Ephemeral" instead of "🟢 Persistent"
+- Fix: verify the volume is mounted at `/data` in Railway dashboard, and set `CACHE_DIR=/data/cache`
 
-## Security Notes
+### App restarts and cache disappears
+- Without a volume, the container filesystem is ephemeral — everything is lost on restart
+- Fix: add a Railway volume (Step 2 above) and set `CACHE_DIR=/data/cache`
 
-- **API keys are never hard-coded.** The OpenAI key is read only from `os.environ["OPENAI_API_KEY"]` or Streamlit secrets. The sidebar input stores it temporarily in the session environment.
-- **PDFs are processed locally.** No document content is sent to any external service unless you opt in to OpenAI re-ranking.
-- The old notebook contained a hard-coded key (`sk-proj-rk4...`) — this has been removed. Rotate that key immediately in your OpenAI dashboard.
-- `.streamlit/secrets.toml` is in `.gitignore`. Never commit it.
+### Memory errors during analysis
+```
+❌ Out of memory processing the corpus.
+```
+- You are using SBERT mode on a low-RAM plan
+- Fix: set `use_sbert: false` in `config/taxonomy.yaml` (OpenAI-only mode uses ~200 MB)
+- Alternative: upgrade Railway plan to 2+ GB RAM
 
----
+### Streamlit timeout during long runs
+- Large corpora (50+ docs) can take 10–30 minutes on first run
+- Fix: `tcpProxyTimeout = 3600` is already set in `railway.toml`
+- The embedding cache means subsequent runs are fast (~10 sec per doc)
 
-## Power BI Integration
+### Invalid or scanned PDFs
+- Scanned PDFs (image-only, no text layer) will extract 0 sentences
+- The app logs a warning and skips them — they appear in the document count but have 0 excerpts
+- Fix: run OCR (e.g. `ocrmypdf`) on scanned documents before adding to the corpus
 
-See the "Power BI Integration" section at the bottom of this README for a full step-by-step guide.
-
-### Quick steps:
-1. Export **CSV (Power BI)** from the Export tab
-2. In Power BI Desktop: **Get Data → Text/CSV** → select the exported file
-3. Recommended measures:
-   - `Valid Evidence Count = COUNTROWS(FILTER(Table, [Validation Category] = "VALID EVIDENCE"))`
-   - `Avg Score by Theme = AVERAGEX(FILTER(Table, [Theme] = SELECTEDVALUE(Theme[Theme])), [Final Score])`
-4. Use **Document**, **Theme**, and **Validation Category** as slicers
-5. Build a matrix visual with Document on rows and Theme on columns, values = count of excerpts
+### OpenAI API errors
+```
+AuthenticationError: Incorrect API key
+```
+- Check the `OPENAI_API_KEY` environment variable in Railway Variables tab
+- The key must start with `sk-`
 
 ---
 
@@ -314,11 +330,7 @@ See the "Power BI Integration" section at the bottom of this README for a full s
 | Version | Description |
 |---|---|
 | 1.0.0 | Initial Streamlit dashboard — full pipeline from notebook v4.1 |
-| — | Added EO skills taxonomy replacing pilot domain map |
-| — | Added human validation UI with batch labelling |
-| — | Added Plotly heatmap, score distribution, theme stacked bar |
-| — | Added Excel multi-sheet export + D3 network JSON |
-| — | Removed hard-coded API key |
 | 1.1.0 | Multilingual taxonomy — NL + EL keywords (289 total); paginated evidence cards; PDF + Excel evidence reports |
-| 1.2.0 | OpenAI-only mode (`use_sbert: false`) — ~200MB RAM, no torch; PT + IT keywords; Railway deployment |
-| 1.3.0 | Disk embedding cache — OpenAI vectors persisted as `.npy` files keyed by file hash; Railway volume mount support (`CACHE_DIR` env var); cache stats in sidebar; clear cache button |
+| 1.2.0 | OpenAI-only mode (`use_sbert: false`) — ~200 MB RAM, no torch; PT + IT keywords; Railway deployment |
+| 1.3.0 | Disk embedding cache — OpenAI vectors persisted as `.npy` files; Railway volume support; 7× fewer API calls per document |
+| 1.4.0 | Folder path ingestion — read PDFs directly from server disk; auto-save outputs to `/data/outputs`; production Railway setup; troubleshooting guide |

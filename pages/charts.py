@@ -190,3 +190,17 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
         st.plotly_chart(fig5, use_container_width=True)
     except Exception as e:
         st.error(f"Chart error: {e}")
+
+
+# ---------------------------------------------------------------------------
+# Standalone page execution (when accessed directly via sidebar URL)
+# ---------------------------------------------------------------------------
+if __name__ == "__main__" or True:
+    from core.page_utils import get_results_for_page, no_results_message
+    from core.taxonomy_loader import load_taxonomy
+    _results = get_results_for_page()
+    if not _results:
+        no_results_message()
+    else:
+        _taxonomy = load_taxonomy()
+        render_charts(_results, _taxonomy)

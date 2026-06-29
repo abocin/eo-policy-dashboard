@@ -38,6 +38,7 @@ def _import_core_modules():
         "core.pdf_extractor",
         "core.chunker",
         "core.search_engine",
+        "core.eo_relevance_filter",
     ]:
         if mod_name in sys.modules and sys.modules[mod_name] is None:
             del sys.modules[mod_name]
@@ -46,6 +47,7 @@ def _import_core_modules():
     chunker = importlib.import_module("core.chunker")
     search_engine = importlib.import_module("core.search_engine")
     cache_manager = importlib.import_module("core.cache_manager")
+    eo_filter = importlib.import_module("core.eo_relevance_filter")
 
     return (
         pdf_extractor.extract_document,
@@ -57,6 +59,7 @@ def _import_core_modules():
         cache_manager.get_session_cache,
         cache_manager.set_session_cache,
         cache_manager.embedding_cache_exists,
+        eo_filter.score_eo_relevance,
     )
 
 
@@ -100,6 +103,7 @@ def process_documents(
         get_session_cache,
         set_session_cache,
         embedding_cache_exists,
+        score_eo_relevance,
     ) = _import_core_modules()
 
     search_cfg = taxonomy.get("search", {})
@@ -199,6 +203,16 @@ def process_documents(
             logger.info(
                 "Searched %s → %d evidence excerpts", fname, len(doc_results)
             )
+
+            # ---- Stage 2: EO capacity-building relevance filter ------------
+            # Scores each excerpt against EO capacity-building reference
+            # sentences; adds eo_relevance_score field (0.0–1.0) to each
+            # result. No-op if OPENAI_API_KEY is absent.
+            if status_callback:
+                status_callback(
+                    f"[{i}/{n_total}] EO relevance scoring {fname}…"
+                )
+            score_eo_relevance(doc_results, taxonomy, fhash=fhash)
 
             # ---- Cache results (not sentences) so re-upload is instant -----
             set_session_cache(cache_key, (doc, doc_results))

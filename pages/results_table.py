@@ -41,6 +41,9 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
         st.error(f"Could not build results table: {e}")
         return
 
+    # ---- Check whether EO relevance scores are available -------------------
+    has_eo_scores = "EO Relevance Score" in df.columns and df["EO Relevance Score"].max() > 0.0
+
     # ---- Filters -----------------------------------------------------------
     with st.expander("🔎 Filters", expanded=True):
         col1, col2, col3 = st.columns(3)
@@ -64,6 +67,54 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
         keyword_filter = col5.text_input("Search in excerpts",
                                          placeholder="Type to filter…")
 
+        # ---- EO Capacity-Building Relevance Filter (Stage 2) ---------------
+        st.divider()
+        eo_col1, eo_col2 = st.columns([2, 3])
+        with eo_col1:
+            eo_filter_on = st.toggle(
+                "🛰️ EO Capacity Filter",
+                value=False,
+                disabled=not has_eo_scores,
+                help=(
+                    "Only show excerpts that score above the threshold on "
+                    "EO capacity-building relevance (Stage-2 semantic re-rank). "
+                    "Requires OPENAI_API_KEY to be set."
+                    if has_eo_scores
+                    else "Run analysis with OPENAI_API_KEY set to enable this filter."
+                ),
+            )
+        with eo_col2:
+            eo_min_score = 0.0
+            if eo_filter_on and has_eo_scores:
+                eo_min_score = st.slider(
+                    "Min EO relevance score",
+                    min_value=0.0, max_value=1.0,
+                    value=0.35, step=0.01,
+                    help=(
+                        "Excerpts with EO relevance score below this threshold are hidden. "
+                        "Recommended starting point: 0.35. Raise to 0.50+ for stricter filtering."
+                    ),
+                )
+
+        if has_eo_scores:
+            if eo_filter_on:
+                above = (df["EO Relevance Score"] >= eo_min_score).sum()
+                st.caption(
+                    f"🛰️ EO Capacity Filter active — {above:,} of {len(df):,} excerpts "
+                    f"pass the ≥ {eo_min_score:.2f} threshold."
+                )
+            else:
+                avg_eo = df["EO Relevance Score"].mean()
+                st.caption(
+                    f"🛰️ EO relevance scores available (avg: {avg_eo:.3f}). "
+                    "Enable the toggle above to filter by EO capacity relevance."
+                )
+        else:
+            st.caption(
+                "🛰️ EO Capacity Filter unavailable — "
+                "set OPENAI_API_KEY and re-run analysis to activate."
+            )
+
     # ---- Apply filters -----------------------------------------------------
     mask = (
         df["Document"].isin(selected_docs)
@@ -74,6 +125,8 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
     if keyword_filter.strip():
         mask &= df["Excerpt"].str.contains(keyword_filter.strip(),
                                            case=False, na=False)
+    if eo_filter_on and has_eo_scores:
+        mask &= df["EO Relevance Score"] >= eo_min_score
 
     filtered = df[mask].sort_values("Final Score", ascending=False).reset_index(drop=True)
     total = len(filtered)
@@ -83,18 +136,30 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
     # ---- Primary view: interactive dataframe -------------------------------
     display_cols = ["Document", "Page", "Theme", "Final Score",
                     "Validation Category", "Keyword Hit", "Excerpt"]
+    col_config = {
+        "Final Score": st.column_config.ProgressColumn(
+            "Score", min_value=0, max_value=1, format="%.3f"
+        ),
+        "Excerpt": st.column_config.TextColumn("Excerpt", width="large"),
+        "Keyword Hit": st.column_config.CheckboxColumn("KW"),
+    }
+
+    # Show EO relevance score column when scores are available
+    if has_eo_scores and "EO Relevance Score" in filtered.columns:
+        display_cols = ["Document", "Page", "Theme", "Final Score",
+                        "EO Relevance Score", "Validation Category",
+                        "Keyword Hit", "Excerpt"]
+        col_config["EO Relevance Score"] = st.column_config.ProgressColumn(
+            "🛰️ EO Relevance",
+            min_value=0, max_value=1, format="%.3f",
+            help="Stage-2 EO capacity-building relevance score (0=not relevant, 1=highly relevant)",
+        )
 
     st.dataframe(
         filtered[display_cols],
         width="stretch",
         height=480,
-        column_config={
-            "Final Score": st.column_config.ProgressColumn(
-                "Score", min_value=0, max_value=1, format="%.3f"
-            ),
-            "Excerpt": st.column_config.TextColumn("Excerpt", width="large"),
-            "Keyword Hit": st.column_config.CheckboxColumn("KW"),
-        },
+        column_config=col_config,
     )
 
     st.divider()
@@ -160,6 +225,19 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
             kw_badge = "🔑 keyword" if row["Keyword Hit"] else "🔍 semantic"
             matched_kw = (f" · <em>{row['Matched Keyword']}</em>"
                           if row.get("Matched Keyword") else "")
+            eo_score_val = row.get("EO Relevance Score", 0.0)
+            eo_badge = ""
+            if has_eo_scores:
+                eo_color = (
+                    "#00b894" if eo_score_val >= 0.50
+                    else "#fdcb6e" if eo_score_val >= 0.30
+                    else "#b2bec3"
+                )
+                eo_badge = (
+                    f" &nbsp;·&nbsp; "
+                    f"<span style='color:{eo_color}; font-size:0.78rem;'>"
+                    f"🛰️ EO: {eo_score_val:.2f}</span>"
+                )
             st.markdown(
                 f"""<div style="border-left:4px solid {color}; padding:0.5rem 1rem;
                     background:#0e1117; border-radius:4px; margin-bottom:0.6rem;">
@@ -170,7 +248,7 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
                     <span style="color:#888; font-size:0.82rem;">
                       {row['Document'][:50]} &nbsp;·&nbsp; p.{int(row['Page'])}
                       &nbsp;·&nbsp; {kw_badge}{matched_kw}
-                      &nbsp;·&nbsp; score: <strong>{row['Final Score']:.3f}</strong>
+                      &nbsp;·&nbsp; score: <strong>{row['Final Score']:.3f}</strong>{eo_badge}
                     </span>
                   </div>
                   <div style="color:#a29bfe; font-size:0.82rem; margin-top:0.25rem;">
@@ -188,3 +266,17 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
             f"Showing results {start_idx + 1}–{end_idx} of {total:,}. "
             f"Use filters above to narrow down, or export all results."
         )
+
+
+# ---------------------------------------------------------------------------
+# Standalone page execution (when accessed directly via sidebar URL)
+# ---------------------------------------------------------------------------
+if __name__ == "__main__" or True:
+    from core.page_utils import get_results_for_page, no_results_message
+    from core.taxonomy_loader import load_taxonomy
+    _results = get_results_for_page()
+    if not _results:
+        no_results_message()
+    else:
+        _taxonomy = load_taxonomy()
+        render_results_table(_results, _taxonomy)
