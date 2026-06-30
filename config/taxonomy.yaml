@@ -450,6 +450,135 @@ search:
 
 
 # ============================================================
+# Lifecycle Stage Definitions
+# ============================================================
+# Edit stage names and keywords here without touching code.
+# The tagger assigns each excerpt to the stage with the most
+# keyword matches (context window text used when available).
+# ============================================================
+
+lifecycle:
+  stages:
+    - stage: "Awareness"
+      keywords:
+        - awareness
+        - disseminat
+        - outreach
+        - promot
+        - communicat
+        - publicis
+        - inform
+        - sensitiz
+        - sensitise
+        - visibility
+        - advocacy
+        - campaign
+        - public engagement
+    - stage: "Education"
+      keywords:
+        - educat
+        - curricul
+        - universit
+        - degree
+        - academic
+        - school
+        - higher education
+        - bachelor
+        - master
+        - PhD
+        - faculty
+        - study programme
+        - learning pathway
+        - formal education
+    - stage: "Training"
+      keywords:
+        - train
+        - course
+        - workshop
+        - bootcamp
+        - certificat
+        - MOOC
+        - e-learning
+        - online learning
+        - short course
+        - professional development
+        - instructor
+        - vocational
+        - apprentice
+    - stage: "Skills"
+      keywords:
+        - skill
+        - upskill
+        - reskill
+        - workforce
+        - competenc
+        - talent
+        - human capital
+        - capacity building
+        - capability
+        - proficienc
+        - digital literacy
+        - data literacy
+        - geospatial skills
+    - stage: "Innovation"
+      keywords:
+        - innovat
+        - research
+        - R&D
+        - living lab
+        - testbed
+        - prototype
+        - pilot
+        - demonstrat
+        - experiment
+        - co-creat
+        - open innovation
+        - technology transfer
+        - proof of concept
+    - stage: "Entrepreneurship"
+      keywords:
+        - startup
+        - start-up
+        - spin-off
+        - venture
+        - incubat
+        - accelerat
+        - entrepreneur
+        - business creation
+        - SME
+        - scale-up
+        - commercialis
+        - CASSINI
+    - stage: "Adoption"
+      keywords:
+        - uptake
+        - deploy
+        - integrat
+        - operationa
+        - implement
+        - mainstream
+        - adopt
+        - utiliz
+        - utilise
+        - embed
+        - roll out
+        - procure
+    - stage: "Sustainability"
+      keywords:
+        - sustain
+        - long-term
+        - ecosystem
+        - governance
+        - institutionali
+        - permanent
+        - funding mechanism
+        - systemic
+        - structural change
+        - national strategy
+        - monitoring framework
+
+
+# ============================================================
 # Stage-2 EO Capacity-Building Relevance Filter
 # ============================================================
 # These reference sentences define what "EO capacity building"

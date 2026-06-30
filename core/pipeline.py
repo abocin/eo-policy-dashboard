@@ -39,6 +39,8 @@ def _import_core_modules():
         "core.chunker",
         "core.search_engine",
         "core.eo_relevance_filter",
+        "core.commitment_analyzer",
+        "core.lifecycle_tagger",
     ]:
         if mod_name in sys.modules and sys.modules[mod_name] is None:
             del sys.modules[mod_name]
@@ -47,7 +49,9 @@ def _import_core_modules():
     chunker = importlib.import_module("core.chunker")
     search_engine = importlib.import_module("core.search_engine")
     cache_manager = importlib.import_module("core.cache_manager")
-    eo_filter = importlib.import_module("core.eo_relevance_filter")
+    eo_filter       = importlib.import_module("core.eo_relevance_filter")
+    commitment_mod  = importlib.import_module("core.commitment_analyzer")
+    lifecycle_mod   = importlib.import_module("core.lifecycle_tagger")
 
     return (
         pdf_extractor.extract_document,
@@ -60,6 +64,8 @@ def _import_core_modules():
         cache_manager.set_session_cache,
         cache_manager.embedding_cache_exists,
         eo_filter.score_eo_relevance,
+        commitment_mod.score_commitment,
+        lifecycle_mod.tag_lifecycle,
     )
 
 
@@ -104,6 +110,8 @@ def process_documents(
         set_session_cache,
         embedding_cache_exists,
         score_eo_relevance,
+        score_commitment,
+        tag_lifecycle,
     ) = _import_core_modules()
 
     search_cfg = taxonomy.get("search", {})
@@ -205,14 +213,17 @@ def process_documents(
             )
 
             # ---- Stage 2: EO capacity-building relevance filter ------------
-            # Scores each excerpt against EO capacity-building reference
-            # sentences; adds eo_relevance_score field (0.0–1.0) to each
-            # result. No-op if OPENAI_API_KEY is absent.
             if status_callback:
                 status_callback(
                     f"[{i}/{n_total}] EO relevance scoring {fname}…"
                 )
             score_eo_relevance(doc_results, taxonomy, fhash=fhash)
+
+            # ---- Stage 3: Commitment strength analysis (regex, free) -------
+            score_commitment(doc_results)
+
+            # ---- Stage 4: Lifecycle stage tagging (regex, free) ------------
+            tag_lifecycle(doc_results, taxonomy)
 
             # ---- Cache results (not sentences) so re-upload is instant -----
             set_session_cache(cache_key, (doc, doc_results))

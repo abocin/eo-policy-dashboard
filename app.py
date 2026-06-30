@@ -55,6 +55,7 @@ from core.exporters import (
 from pages.charts import render_charts
 from pages.results_table import render_results_table
 from pages.human_validation import render_human_validation
+from pages.gap_analysis import render_gap_analysis
 
 # ---- logging ---------------------------------------------------------------
 logging.basicConfig(level=logging.INFO)
@@ -553,8 +554,8 @@ else:
 
     st.divider()
 
-    tab_results, tab_charts, tab_validate, tab_export = st.tabs(
-        ["📋 Results", "📊 Charts", "🏷️ Human Validation", "📤 Export"]
+    tab_results, tab_charts, tab_intel, tab_validate, tab_export = st.tabs(
+        ["📋 Results", "📊 Charts", "🔬 Policy Intelligence", "🏷️ Human Validation", "📤 Export"]
     )
 
     with tab_results:
@@ -562,6 +563,9 @@ else:
 
     with tab_charts:
         render_charts(results, taxonomy)
+
+    with tab_intel:
+        render_gap_analysis(results, taxonomy)
 
     with tab_validate:
         render_human_validation(results)

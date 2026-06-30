@@ -58,6 +58,9 @@ class SearchResult:
     chunk_index: int = -1
     eo_relevance_score: float = 0.0  # Stage-2 EO capacity-building re-rank score
     context: str = ""               # Surrounding sentences (N before + N after excerpt)
+    commitment_score: float = 0.0   # 0.0 (aspirational) → 1.0 (binding/funded)
+    commitment_level: str = ""      # BINDING | STRONG | MODERATE | ASPIRATIONAL
+    lifecycle_stage: str = ""       # Awareness|Education|Training|Skills|Innovation|Entrepreneurship|Adoption|Sustainability
 
 
 # ---------------------------------------------------------------------------
