@@ -31,6 +31,7 @@ def _dict_to_result(d: Dict[str, Any]) -> SearchResult:
         cross_encoder_score=float(d.get("cross_encoder_score", 0.0)),
         final_score=float(d.get("final_score", 0.0)),
         eo_relevance_score=float(d.get("eo_relevance_score", 0.0)),
+        context=d.get("context", ""),
         validation_category=d.get("validation_category", "UNSCORED"),
         human_label=d.get("human_label", ""),
         chunk_index=int(d.get("chunk_index", -1)),

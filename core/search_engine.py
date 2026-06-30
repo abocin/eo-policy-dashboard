@@ -57,6 +57,7 @@ class SearchResult:
     matched_keyword: str = ""
     chunk_index: int = -1
     eo_relevance_score: float = 0.0  # Stage-2 EO capacity-building re-rank score
+    context: str = ""               # Surrounding sentences (N before + N after excerpt)
 
 
 # ---------------------------------------------------------------------------
@@ -389,6 +390,45 @@ def _classify(score: float, valid_threshold: float, weak_threshold: float) -> st
         return "NOT RELEVANT"
 
 
+def _attach_context(
+    results: List[SearchResult],
+    sentences,
+    context_window: int = 2,
+) -> None:
+    """
+    Populate result.context with the N sentences before and after the matched
+    excerpt, taken from the same document and same page where possible.
+
+    Mutates results in-place. No API calls, no extra cost.
+
+    Args:
+        results        : list of SearchResult (mutated)
+        sentences      : full flat list of Sentence objects for this document
+        context_window : number of sentences to include before and after (default 2)
+    """
+    if not results or not sentences:
+        return
+
+    # Build a lookup: excerpt text -> sentence_index (first match per doc/page)
+    text_to_idx: dict = {}
+    for s in sentences:
+        if s.text not in text_to_idx:
+            text_to_idx[s.text] = s.sentence_index
+
+    n = len(sentences)
+    for r in results:
+        idx = text_to_idx.get(r.excerpt, -1)
+        if idx < 0:
+            r.context = r.excerpt  # fallback: just the excerpt itself
+            continue
+
+        start = max(0, idx - context_window)
+        end = min(n, idx + context_window + 1)
+
+        parts = [sentences[i].text for i in range(start, end)]
+        r.context = " ".join(parts)
+
+
 # ---------------------------------------------------------------------------
 # Main pipeline entry point
 # ---------------------------------------------------------------------------
@@ -543,5 +583,11 @@ def run_search_pipeline(
             global_map[key] = r
 
     final = sorted(global_map.values(), key=lambda x: x.final_score, reverse=True)
+
+    # Attach surrounding context sentences (2 before + 2 after) to each result.
+    # Uses only the in-memory sentence list — no API calls, no extra cost.
+    context_window = taxonomy.get("search", {}).get("context_window", 2)
+    _attach_context(final, sentences, context_window=context_window)
+
     logger.info("Search complete for %s — %d evidence excerpts", doc_name, len(final))
     return final

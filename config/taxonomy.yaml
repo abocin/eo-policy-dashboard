@@ -443,6 +443,10 @@ search:
   top_k_sentences: 5
   chunk_size: 400
   chunk_overlap: 80
+  # Number of sentences to grab before and after each matched excerpt
+  # for the "Show context" expander in the card view.
+  # 2 = ~1 paragraph of context. Increase to 3-4 for more.
+  context_window: 2
 
 
 # ============================================================

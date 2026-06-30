@@ -345,6 +345,23 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 </div>""",
                 unsafe_allow_html=True,
             )
+            # Show context expander if context differs from excerpt
+            ctx = row.get("Context", "") if "Context" in row.index else ""
+            if ctx and ctx.strip() != row["Excerpt"].strip():
+                with st.expander("Show context"):
+                    # Highlight the matched excerpt within the context
+                    excerpt_escaped = row["Excerpt"].replace("<", "&lt;").replace(">", "&gt;")
+                    ctx_escaped = ctx.replace("<", "&lt;").replace(">", "&gt;")
+                    highlighted = ctx_escaped.replace(
+                        excerpt_escaped,
+                        f"<mark style='background:#6c5ce7; color:#fff; "
+                        f"border-radius:3px; padding:1px 3px;'>{excerpt_escaped}</mark>"
+                    )
+                    st.markdown(
+                        f"<div style='font-size:0.88rem; line-height:1.6; "
+                        f"color:#dfe6e9;'>{highlighted}</div>",
+                        unsafe_allow_html=True,
+                    )
 
         st.caption(
             f"Showing results {start_idx + 1}–{end_idx} of {card_total:,}. "

@@ -43,6 +43,7 @@ def results_to_dataframe(results: List[SearchResult]) -> pd.DataFrame:
                 "OpenAI Score": round(r.openai_score, 4),
                 "Final Score": round(r.final_score, 4),
                 "EO Relevance Score": round(getattr(r, "eo_relevance_score", 0.0), 4),
+                "Context": getattr(r, "context", ""),
                 "Validation Category": r.validation_category,
                 "Human Label": r.human_label,
             }
