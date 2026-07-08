@@ -57,10 +57,26 @@ with tab_manage:
     else:
         st.markdown("Select files to delete, then click **Delete selected**.")
 
-        # ---- Select all toggle --------------------------------------------
-        col_sel, col_del = st.columns([2, 1])
-        with col_sel:
-            select_all = st.checkbox("Select all", key="select_all")
+        # ---- Initialise selection state -----------------------------------
+        for f in all_files:
+            key = f"sel_{f.name}"
+            if key not in st.session_state:
+                st.session_state[key] = False
+
+        # ---- Select all / Deselect all buttons ----------------------------
+        def _select_all():
+            for f in all_files:
+                st.session_state[f"sel_{f.name}"] = True
+
+        def _deselect_all():
+            for f in all_files:
+                st.session_state[f"sel_{f.name}"] = False
+
+        col_a, col_b, col_c = st.columns([1, 1, 4])
+        with col_a:
+            st.button("Select all", use_container_width=True, on_click=_select_all)
+        with col_b:
+            st.button("Deselect all", use_container_width=True, on_click=_deselect_all)
 
         # ---- File list with checkboxes ------------------------------------
         to_delete = []
@@ -72,8 +88,7 @@ with tab_manage:
             )
             checked = st.checkbox(
                 f"{f.name}  —  {size_str}",
-                value=select_all,
-                key=f"file_{f.name}",
+                key=f"sel_{f.name}",
             )
             if checked:
                 to_delete.append(f)
@@ -82,9 +97,7 @@ with tab_manage:
 
         # ---- Delete button ------------------------------------------------
         if to_delete:
-            with col_del:
-                st.markdown(f"**{len(to_delete)}** file(s) selected")
-
+            st.markdown(f"**{len(to_delete)}** file(s) selected")
             if st.button(
                 f"🗑️ Delete {len(to_delete)} selected file(s)",
                 type="primary",
@@ -95,6 +108,8 @@ with tab_manage:
                 for f in to_delete:
                     try:
                         f.unlink()
+                        # Clear session state for deleted file
+                        st.session_state.pop(f"sel_{f.name}", None)
                         deleted.append(f.name)
                     except Exception as e:
                         errors.append(f"{f.name}: {e}")
