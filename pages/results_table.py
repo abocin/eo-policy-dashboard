@@ -51,21 +51,26 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
 
         docs_available = sorted(df["Document"].unique().tolist())
         selected_docs = col1.multiselect("Document(s)", docs_available,
-                                         default=docs_available)
+                                         default=docs_available,
+                                         key="rt_filter_docs")
 
         themes_available = sorted(df["Theme"].unique().tolist())
         selected_themes = col2.multiselect("Theme(s)", themes_available,
-                                           default=themes_available)
+                                           default=themes_available,
+                                           key="rt_filter_themes")
 
         cats_available = sorted(df["Validation Category"].unique().tolist())
         default_cats = [c for c in cats_available
                         if c not in ("NOT RELEVANT", "UNSCORED")]
         selected_cats = col3.multiselect("Validation category", cats_available,
-                                         default=default_cats)
+                                         default=default_cats,
+                                         key="rt_filter_cats")
 
-        min_score = col4.slider("Minimum final score", 0.0, 1.0, 0.0, 0.01)
+        min_score = col4.slider("Minimum final score", 0.0, 1.0, 0.0, 0.01,
+                                key="rt_filter_min_score")
         keyword_filter = col5.text_input("Search in excerpts",
-                                         placeholder="Type to filter…")
+                                         placeholder="Type to filter…",
+                                         key="rt_filter_keyword")
 
         # ---- EO Capacity-Building Relevance Filter (Stage 2) ---------------
         st.divider()
@@ -74,6 +79,7 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
             eo_filter_on = st.toggle(
                 "🛰️ EO Capacity Filter",
                 value=False,
+                key="rt_eo_filter_on",
                 disabled=not has_eo_scores,
                 help=(
                     "Only show excerpts that score above the threshold on "
@@ -90,6 +96,7 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
                     "Min EO relevance score",
                     min_value=0.0, max_value=1.0,
                     value=0.35, step=0.01,
+                    key="rt_eo_min_score",
                     help=(
                         "Excerpts with EO relevance score below this threshold are hidden. "
                         "Recommended starting point: 0.35. Raise to 0.50+ for stricter filtering."
@@ -267,10 +274,10 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
         nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([1, 1, 3, 1, 1])
 
         with nav_col1:
-            if st.button("⏮ First", width="stretch"):
+            if st.button("⏮ First", width="stretch", key="rt_page_first"):
                 st.session_state[page_key] = 1
         with nav_col2:
-            if st.button("◀ Prev", width="stretch",
+            if st.button("◀ Prev", width="stretch", key="rt_page_prev",
                          disabled=st.session_state[page_key] <= 1):
                 st.session_state[page_key] -= 1
         with nav_col3:
@@ -282,17 +289,17 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 unsafe_allow_html=True,
             )
         with nav_col4:
-            if st.button("Next ▶", width="stretch",
+            if st.button("Next ▶", width="stretch", key="rt_page_next",
                          disabled=st.session_state[page_key] >= total_pages):
                 st.session_state[page_key] += 1
         with nav_col5:
-            if st.button("Last ⏭", width="stretch"):
+            if st.button("Last ⏭", width="stretch", key="rt_page_last"):
                 st.session_state[page_key] = total_pages
 
         # Jump to page input
         jump = st.number_input(
             "Jump to page", min_value=1, max_value=total_pages,
-            value=st.session_state[page_key], step=1, key="page_jump"
+            value=st.session_state[page_key], step=1, key="rt_page_jump"
         )
         if jump != st.session_state[page_key]:
             st.session_state[page_key] = int(jump)
