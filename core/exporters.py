@@ -26,6 +26,32 @@ from core.search_engine import SearchResult
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Excel cell limits
+_EXCEL_MAX_CELL = 32_767          # openpyxl hard limit per cell
+_ILLEGAL_CHARS = str.maketrans(   # control chars Excel rejects
+    "",
+    "",
+    "".join(chr(c) for c in range(32) if c not in (9, 10, 13)),  # keep tab/LF/CR
+)
+
+
+def _sanitise_for_excel(val, max_len: int = _EXCEL_MAX_CELL):
+    """Strip illegal control characters and truncate to Excel's cell limit."""
+    if not isinstance(val, str):
+        return val
+    val = val.translate(_ILLEGAL_CHARS)
+    if len(val) > max_len:
+        val = val[:max_len - 3] + "..."
+    return val
+
+
+def _sanitise_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply _sanitise_for_excel to every string column in a DataFrame."""
+    for col in df.select_dtypes(include="object").columns:
+        df[col] = df[col].map(_sanitise_for_excel)
+    return df
+
+
 def results_to_dataframe(results: List[SearchResult]) -> pd.DataFrame:
     """Convert SearchResult list to a flat DataFrame."""
     rows = []
@@ -73,11 +99,13 @@ def to_csv_bytes(results: List[SearchResult]) -> bytes:
 def to_excel_bytes(results: List[SearchResult]) -> bytes:
     """
     Returns an Excel workbook with multiple sheets:
+    NOTE: all string values are sanitised (illegal chars stripped,
+    cells truncated to 32,767 chars) before writing.
       - All Evidence, Valid Evidence, Weak Evidence, Not Relevant
       - Theme Summary pivot
       - Human Reviewed
     """
-    df = results_to_dataframe(results)
+    df = _sanitise_df(results_to_dataframe(results))
     buf = io.BytesIO()
 
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
@@ -257,7 +285,7 @@ def to_excel_report_bytes(results: List[SearchResult]) -> bytes:
         # Document title row
         ws.merge_cells("A1:G1")
         title_cell = ws["A1"]
-        title_cell.value = f"Evidence Report — {doc_name}"
+        title_cell.value = _sanitise_for_excel(f"Evidence Report — {doc_name}")
         title_cell.font = Font(name="Calibri", size=12, bold=True, color=CLR_HEADER_FG)
         title_cell.fill = fill(CLR_HEADER_BG)
         title_cell.alignment = Alignment(horizontal="left", vertical="center")
@@ -292,7 +320,8 @@ def to_excel_report_bytes(results: List[SearchResult]) -> bytes:
                 row["Human Label"] if row["Human Label"] else "",
             ]
             for col_i, val in enumerate(values, 1):
-                c = ws.cell(row=row_i, column=col_i, value=val)
+                c = ws.cell(row=row_i, column=col_i,
+                            value=_sanitise_for_excel(val))
                 c.fill = fill(row_bg if row_i % 2 == 0 else CLR_ROW_ALT
                               if not is_valid else CLR_VALID_BG)
                 c.border = thin
