@@ -578,59 +578,25 @@ else:
         )
         ts = pd.Timestamp.now().strftime("%Y%m%d_%H%M")
 
-        st.markdown("#### 📄 Evidence Reports")
-        rep_col1, rep_col2 = st.columns(2)
+        # ----------------------------------------------------------------
+        # Heavy exports (Excel report, formatted workbook) are generated
+        # on-demand only — never on every page render — to avoid timeouts
+        # with large corpora (100+ documents).
+        # ----------------------------------------------------------------
 
-        with rep_col1:
-            try:
-                pdf_bytes = to_pdf_report_bytes(results)
-                st.download_button(
-                    label="⬇️ Evidence Report (PDF)",
-                    data=pdf_bytes,
-                    file_name=f"eo_evidence_report_{ts}.pdf",
-                    mime="application/pdf",
-                    width="stretch",
-                )
-            except Exception as e:
-                st.warning(f"PDF export unavailable: {e}")
-
-        with rep_col2:
-            try:
-                excel_report_bytes = to_excel_report_bytes(results)
-                st.download_button(
-                    label="⬇️ Evidence Report (Excel)",
-                    data=excel_report_bytes,
-                    file_name=f"eo_evidence_report_{ts}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    width="stretch",
-                )
-            except Exception as e:
-                st.warning(f"Excel report export error: {e}")
-
-        st.divider()
-        st.markdown("#### 📊 Data Exports")
+        st.markdown("#### 📊 Data Exports  *(instant)*")
+        st.caption("CSV and JSON are generated immediately on click.")
         col_a, col_b = st.columns(2)
 
         with col_a:
             st.download_button(
-                label="⬇️ CSV (Power BI)",
+                label="⬇️ All Results — CSV",
                 data=to_csv_bytes(results),
                 file_name=f"eo_policy_evidence_{ts}.csv",
                 mime="text/csv",
                 width="stretch",
+                key="exp_csv",
             )
-            try:
-                _excel_data = to_excel_bytes(results)
-                st.download_button(
-                    label="⬇️ Excel Data Workbook",
-                    data=_excel_data,
-                    file_name=f"eo_policy_data_{ts}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    width="stretch",
-                )
-            except Exception as _exc:
-                st.error(f"Excel export error: {_exc}")
-                logger.exception("to_excel_bytes failed")
 
         with col_b:
             st.download_button(
@@ -639,15 +605,106 @@ else:
                 file_name=f"eo_policy_d3_{ts}.json",
                 mime="application/json",
                 width="stretch",
+                key="exp_json",
             )
-            report_md = to_markdown_report(results)
-            st.download_button(
-                label="⬇️ Evidence Report (Markdown)",
-                data=report_md.encode("utf-8"),
-                file_name=f"eo_policy_report_{ts}.md",
-                mime="text/markdown",
-                width="stretch",
-            )
+
+        st.divider()
+        st.markdown("#### 📄 Excel Exports  *(generate first, then download)*")
+        st.caption(
+            "Excel files are built on demand. Click **Generate**, wait for it to finish, "
+            "then the download button will appear. Large corpora may take 30–60 seconds."
+        )
+
+        # ---- Excel Data Workbook (multi-sheet, flat data) ------------------
+        xcol1, xcol2 = st.columns(2)
+        with xcol1:
+            st.markdown("**Excel Data Workbook** — all evidence, theme pivot, human labels")
+            if st.button("⚙️ Generate Excel Data Workbook", key="exp_xlsx_gen",
+                         use_container_width=True):
+                with st.spinner("Building Excel workbook…"):
+                    try:
+                        st.session_state["_xlsx_data"] = to_excel_bytes(results)
+                        st.session_state["_xlsx_ts"] = ts
+                    except Exception as _exc:
+                        st.error(f"Excel export error: {_exc}")
+                        logger.exception("to_excel_bytes failed")
+
+            if st.session_state.get("_xlsx_data"):
+                st.download_button(
+                    label="⬇️ Download Excel Data Workbook",
+                    data=st.session_state["_xlsx_data"],
+                    file_name=f"eo_policy_data_{st.session_state.get('_xlsx_ts', ts)}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    width="stretch",
+                    key="exp_xlsx_dl",
+                )
+
+        # ---- Excel Evidence Report (formatted, per-document sheets) --------
+        with xcol2:
+            st.markdown("**Evidence Report (Excel)** — formatted, one sheet per document")
+            st.caption("⚠️ Slow for large corpora (≥ 50 docs). Use CSV for full datasets.")
+            if st.button("⚙️ Generate Evidence Report (Excel)", key="exp_report_xlsx_gen",
+                         use_container_width=True):
+                with st.spinner("Building formatted report… this may take a minute."):
+                    try:
+                        st.session_state["_report_xlsx"] = to_excel_report_bytes(results)
+                        st.session_state["_report_ts"] = ts
+                    except Exception as _exc:
+                        st.warning(f"Excel report error: {_exc}")
+                        logger.exception("to_excel_report_bytes failed")
+
+            if st.session_state.get("_report_xlsx"):
+                st.download_button(
+                    label="⬇️ Download Evidence Report (Excel)",
+                    data=st.session_state["_report_xlsx"],
+                    file_name=f"eo_evidence_report_{st.session_state.get('_report_ts', ts)}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    width="stretch",
+                    key="exp_report_xlsx_dl",
+                )
+
+        st.divider()
+        st.markdown("#### 📄 Report Exports  *(generate first)*")
+        rcol1, rcol2 = st.columns(2)
+
+        with rcol1:
+            st.markdown("**PDF Evidence Report**")
+            if st.button("⚙️ Generate PDF Report", key="exp_pdf_gen",
+                         use_container_width=True):
+                with st.spinner("Building PDF…"):
+                    try:
+                        st.session_state["_pdf_data"] = to_pdf_report_bytes(results)
+                        st.session_state["_pdf_ts"] = ts
+                    except Exception as e:
+                        st.warning(f"PDF export unavailable: {e}")
+
+            if st.session_state.get("_pdf_data"):
+                st.download_button(
+                    label="⬇️ Download PDF Report",
+                    data=st.session_state["_pdf_data"],
+                    file_name=f"eo_evidence_report_{st.session_state.get('_pdf_ts', ts)}.pdf",
+                    mime="application/pdf",
+                    width="stretch",
+                    key="exp_pdf_dl",
+                )
+
+        with rcol2:
+            st.markdown("**Markdown Evidence Report**")
+            if st.button("⚙️ Generate Markdown Report", key="exp_md_gen",
+                         use_container_width=True):
+                with st.spinner("Building Markdown report…"):
+                    st.session_state["_md_data"] = to_markdown_report(results).encode("utf-8")
+                    st.session_state["_md_ts"] = ts
+
+            if st.session_state.get("_md_data"):
+                st.download_button(
+                    label="⬇️ Download Markdown Report",
+                    data=st.session_state["_md_data"],
+                    file_name=f"eo_policy_report_{st.session_state.get('_md_ts', ts)}.md",
+                    mime="text/markdown",
+                    width="stretch",
+                    key="exp_md_dl",
+                )
 
         st.divider()
         st.markdown(f"#### 📁 Server outputs  \n`{OUTPUTS_DIR}`")
