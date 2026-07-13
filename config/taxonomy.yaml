@@ -49,12 +49,18 @@ themes:
       - ruimtevaartvaardigheden           # space skills
       # Greek (EL)
       - παρατήρηση γης                   # earth observation
+      - παρατήρηση της γης              # earth observation (alt form)
       - δορυφορικές εικόνες              # satellite imagery
+      - δορυφορική εικόνα              # satellite image (singular)
       - τηλεπισκόπηση                    # remote sensing
       - γεωχωρική ανάλυση               # geospatial analysis
       - δορυφορικά δεδομένα              # satellite data
+      - δορυφορικών δεδομένων          # satellite data (genitive)
       - Κοπέρνικος                       # Copernicus
       - δεδομένα EO                      # EO data
+      - δεδομένων EO                     # EO data (genitive)
+      - χρήση δορυφορικών δεδομένων    # use of satellite data
+      - αξιοποίηση δορυφορικών δεδομένων # exploitation of satellite data
       # Portuguese (PT)
       - observação da Terra              # earth observation
       - imagens de satélite              # satellite imagery
@@ -315,12 +321,20 @@ themes:
       - έλλειψη δεξιοτήτων               # skills shortage
       - ανάπτυξη εργατικού δυναμικού     # workforce development
       - ανάπτυξη ικανοτήτων              # capacity building
+      - οικοδόμηση ικανοτήτων           # capacity building (alt)
       - αναβάθμιση δεξιοτήτων            # upskilling
+      - αναβαθμολόγηση δεξιοτήτων       # upskilling (alt)
       - επανεκπαίδευση                   # reskilling
       - επαγγελματική κατάρτιση          # vocational training
+      - επαγγελματική εκπαίδευση         # professional training
       - δια βίου μάθηση                  # lifelong learning
+      - δια βίου κατάρτιση              # lifelong training
       - δεξιότητες STEM                  # STEM skills
       - ανάγκες κατάρτισης               # training needs
+      - ανάπτυξη δεξιοτήτων              # skills development
+      - κατάρτιση στελεχών               # staff training
+      - ανθρώπινο δυναμικό               # human capital
+      - εξειδίκευση                        # specialisation / training
       # Portuguese (PT)
       - lacuna de competências            # skills gap
       - escassez de competências          # skills shortage
@@ -435,7 +449,7 @@ search:
   use_cross_encoder: false
   use_openai: true
 
-  sbert_model: "all-MiniLM-L6-v2"
+  sbert_model: "paraphrase-multilingual-MiniLM-L12-v2"
   cross_encoder_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
   # top_k_sentences: max semantic hits returned per theme per document.
@@ -626,6 +640,17 @@ eo_relevance:
     - "κατάρτιση για χρήση δεδομένων παρατήρησης γης"
     - "ανάπτυξη ικανοτήτων για εφαρμογές παρατήρησης γης"
     - "εκπαίδευση στην χρήση δορυφόρων δεδομένων και εργαλείων"
+    - "ανάπτυξη δεξιοτήτων στην παρατήρηση γης και τηλεπισκόπηση"
+    - "χρήση δεδομένων Κοπέρνικος από δημόσιους φορείς"
+    - "δεξιότητες για ανάλυση δορυφορικών δεδομένων"
+    - "εκπαίδευση επαγγελματιών στη γεωχωρική ανάλυση"
+    - "οικοδόμηση θεσμικής ικανότητας για αξιοποίηση δεδομένων EO"
+    - "ψηφιακές δεξιότητες για εργασία με δεδομένα παρατήρησης γης"
+    - "επαγγελματική κατάρτιση στις διαστημικές τεχνολογίες και εφαρμογές"
+    - "ανάγκη για εξειδικευμένο προσωπικό στην επεξεργασία δορυφορικών εικόνων"
+    - "ανάπτυξη εμπειρογνωμοσύνης σε προϊόντα δεδομένων παρατήρησης γης"
+    - "πολιτική για αύξηση της χρήσης δεδομένων ΠΓ από επιχειρήσεις"
+    - "ενίσχυση ικανοτήτων για αξιοποίηση υπηρεσιών κατάντη EO"
     # --- Portuguese (PT) ---
     - "formação em observação da Terra e dados de satélite"
     - "capacitação para aplicações de observação da Terra"
