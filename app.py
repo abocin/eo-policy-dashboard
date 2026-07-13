@@ -584,126 +584,144 @@ else:
         # with large corpora (100+ documents).
         # ----------------------------------------------------------------
 
-        st.markdown("#### 📊 Data Exports  *(instant)*")
-        st.caption("CSV and JSON are generated immediately on click.")
+        # ----------------------------------------------------------------
+        # Helper: write to disk, return path string for display
+        # ----------------------------------------------------------------
+        def _save_and_show(label: str, filename: str, data: bytes,
+                           mime: str, key: str) -> None:
+            """Write data to OUTPUTS_DIR and offer a download button.
+            Reading from disk avoids Streamlit websocket size limits."""
+            dest = save_output(filename, data)
+            st.download_button(
+                label=label,
+                data=dest.read_bytes(),
+                file_name=filename,
+                mime=mime,
+                width="stretch",
+                key=key,
+            )
+            st.caption(f"✅ Saved to server: `{dest.name}` ({dest.stat().st_size // 1024:,} KB)")
+
+        st.markdown("#### 📊 Instant Exports")
+        st.caption("Generated on click — small files, no waiting.")
         col_a, col_b = st.columns(2)
 
         with col_a:
-            st.download_button(
-                label="⬇️ All Results — CSV",
-                data=to_csv_bytes(results),
-                file_name=f"eo_policy_evidence_{ts}.csv",
-                mime="text/csv",
-                width="stretch",
-                key="exp_csv",
-            )
+            if st.button("⚙️ Build CSV", key="exp_csv_gen", use_container_width=True):
+                with st.spinner("Building CSV…"):
+                    st.session_state["_csv_data"] = to_csv_bytes(results)
+                    st.session_state["_csv_fname"] = f"eo_evidence_{ts}.csv"
+            if st.session_state.get("_csv_data"):
+                _save_and_show(
+                    "⬇️ Download CSV",
+                    st.session_state["_csv_fname"],
+                    st.session_state["_csv_data"],
+                    "text/csv", "exp_csv_dl",
+                )
 
         with col_b:
-            st.download_button(
-                label="⬇️ D3 / Network JSON",
-                data=to_d3_json(results),
-                file_name=f"eo_policy_d3_{ts}.json",
-                mime="application/json",
-                width="stretch",
-                key="exp_json",
-            )
+            if st.button("⚙️ Build JSON", key="exp_json_gen", use_container_width=True):
+                with st.spinner("Building JSON…"):
+                    st.session_state["_json_data"] = to_d3_json(results)
+                    st.session_state["_json_fname"] = f"eo_policy_d3_{ts}.json"
+            if st.session_state.get("_json_data"):
+                _save_and_show(
+                    "⬇️ Download JSON",
+                    st.session_state["_json_fname"],
+                    st.session_state["_json_data"],
+                    "application/json", "exp_json_dl",
+                )
 
         st.divider()
-        st.markdown("#### 📄 Excel Exports  *(generate first, then download)*")
+        st.markdown("#### 📄 Excel & Report Exports")
         st.caption(
-            "Excel files are built on demand. Click **Generate**, wait for it to finish, "
-            "then the download button will appear. Large corpora may take 30–60 seconds."
+            "Click **Build**, wait for the spinner to finish, "
+            "then click **Download**. Files are also saved to the server outputs folder."
         )
 
-        # ---- Excel Data Workbook (multi-sheet, flat data) ------------------
         xcol1, xcol2 = st.columns(2)
-        with xcol1:
-            st.markdown("**Excel Data Workbook** — all evidence, theme pivot, human labels")
-            if st.button("⚙️ Generate Excel Data Workbook", key="exp_xlsx_gen",
-                         use_container_width=True):
-                with st.spinner("Building Excel workbook…"):
-                    try:
-                        st.session_state["_xlsx_data"] = to_excel_bytes(results)
-                        st.session_state["_xlsx_ts"] = ts
-                    except Exception as _exc:
-                        st.error(f"Excel export error: {_exc}")
-                        logger.exception("to_excel_bytes failed")
 
+        with xcol1:
+            st.markdown("**Excel Data Workbook** — all evidence + theme pivot")
+            if st.button("⚙️ Build Excel Workbook", key="exp_xlsx_gen",
+                         use_container_width=True):
+                with st.spinner("Building Excel workbook — please wait…"):
+                    try:
+                        _data = to_excel_bytes(results)
+                        st.session_state["_xlsx_data"] = _data
+                        st.session_state["_xlsx_fname"] = f"eo_policy_data_{ts}.xlsx"
+                        st.success(f"Built — {len(_data) // 1024:,} KB")
+                    except Exception as _exc:
+                        st.error(f"Error: {_exc}")
+                        logger.exception("to_excel_bytes failed")
             if st.session_state.get("_xlsx_data"):
-                st.download_button(
-                    label="⬇️ Download Excel Data Workbook",
-                    data=st.session_state["_xlsx_data"],
-                    file_name=f"eo_policy_data_{st.session_state.get('_xlsx_ts', ts)}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    width="stretch",
-                    key="exp_xlsx_dl",
+                _save_and_show(
+                    "⬇️ Download Excel Workbook",
+                    st.session_state["_xlsx_fname"],
+                    st.session_state["_xlsx_data"],
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "exp_xlsx_dl",
                 )
 
-        # ---- Excel Evidence Report (formatted, per-document sheets) --------
         with xcol2:
-            st.markdown("**Evidence Report (Excel)** — formatted, one sheet per document")
-            st.caption("⚠️ Slow for large corpora (≥ 50 docs). Use CSV for full datasets.")
-            if st.button("⚙️ Generate Evidence Report (Excel)", key="exp_report_xlsx_gen",
+            st.markdown("**Evidence Report (Excel)** — formatted, one sheet per doc")
+            st.caption("⚠️ Slow for ≥ 50 docs. Use workbook for large corpora.")
+            if st.button("⚙️ Build Report (Excel)", key="exp_report_xlsx_gen",
                          use_container_width=True):
-                with st.spinner("Building formatted report… this may take a minute."):
+                with st.spinner("Building formatted report — may take 1–2 minutes…"):
                     try:
-                        st.session_state["_report_xlsx"] = to_excel_report_bytes(results)
-                        st.session_state["_report_ts"] = ts
+                        _data = to_excel_report_bytes(results)
+                        st.session_state["_report_xlsx"] = _data
+                        st.session_state["_report_fname"] = f"eo_evidence_report_{ts}.xlsx"
+                        st.success(f"Built — {len(_data) // 1024:,} KB")
                     except Exception as _exc:
-                        st.warning(f"Excel report error: {_exc}")
+                        st.warning(f"Error: {_exc}")
                         logger.exception("to_excel_report_bytes failed")
-
             if st.session_state.get("_report_xlsx"):
-                st.download_button(
-                    label="⬇️ Download Evidence Report (Excel)",
-                    data=st.session_state["_report_xlsx"],
-                    file_name=f"eo_evidence_report_{st.session_state.get('_report_ts', ts)}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    width="stretch",
-                    key="exp_report_xlsx_dl",
+                _save_and_show(
+                    "⬇️ Download Evidence Report (Excel)",
+                    st.session_state["_report_fname"],
+                    st.session_state["_report_xlsx"],
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "exp_report_xlsx_dl",
                 )
 
         st.divider()
-        st.markdown("#### 📄 Report Exports  *(generate first)*")
         rcol1, rcol2 = st.columns(2)
 
         with rcol1:
             st.markdown("**PDF Evidence Report**")
-            if st.button("⚙️ Generate PDF Report", key="exp_pdf_gen",
-                         use_container_width=True):
+            if st.button("⚙️ Build PDF", key="exp_pdf_gen", use_container_width=True):
                 with st.spinner("Building PDF…"):
                     try:
-                        st.session_state["_pdf_data"] = to_pdf_report_bytes(results)
-                        st.session_state["_pdf_ts"] = ts
+                        _data = to_pdf_report_bytes(results)
+                        st.session_state["_pdf_data"] = _data
+                        st.session_state["_pdf_fname"] = f"eo_evidence_report_{ts}.pdf"
+                        st.success(f"Built — {len(_data) // 1024:,} KB")
                     except Exception as e:
-                        st.warning(f"PDF export unavailable: {e}")
-
+                        st.warning(f"PDF unavailable: {e}")
             if st.session_state.get("_pdf_data"):
-                st.download_button(
-                    label="⬇️ Download PDF Report",
-                    data=st.session_state["_pdf_data"],
-                    file_name=f"eo_evidence_report_{st.session_state.get('_pdf_ts', ts)}.pdf",
-                    mime="application/pdf",
-                    width="stretch",
-                    key="exp_pdf_dl",
+                _save_and_show(
+                    "⬇️ Download PDF Report",
+                    st.session_state["_pdf_fname"],
+                    st.session_state["_pdf_data"],
+                    "application/pdf", "exp_pdf_dl",
                 )
 
         with rcol2:
             st.markdown("**Markdown Evidence Report**")
-            if st.button("⚙️ Generate Markdown Report", key="exp_md_gen",
-                         use_container_width=True):
-                with st.spinner("Building Markdown report…"):
-                    st.session_state["_md_data"] = to_markdown_report(results).encode("utf-8")
-                    st.session_state["_md_ts"] = ts
-
+            if st.button("⚙️ Build Markdown", key="exp_md_gen", use_container_width=True):
+                with st.spinner("Building Markdown…"):
+                    _data = to_markdown_report(results).encode("utf-8")
+                    st.session_state["_md_data"] = _data
+                    st.session_state["_md_fname"] = f"eo_policy_report_{ts}.md"
+                    st.success(f"Built — {len(_data) // 1024:,} KB")
             if st.session_state.get("_md_data"):
-                st.download_button(
-                    label="⬇️ Download Markdown Report",
-                    data=st.session_state["_md_data"],
-                    file_name=f"eo_policy_report_{st.session_state.get('_md_ts', ts)}.md",
-                    mime="text/markdown",
-                    width="stretch",
-                    key="exp_md_dl",
+                _save_and_show(
+                    "⬇️ Download Markdown Report",
+                    st.session_state["_md_fname"],
+                    st.session_state["_md_data"],
+                    "text/markdown", "exp_md_dl",
                 )
 
         st.divider()
