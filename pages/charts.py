@@ -1,7 +1,12 @@
 """
-pages/charts.py
----------------
+pages/charts.py  —  v1.3
+------------------------
 All visualisations for the dashboard.
+
+v1.3 change: charts that iterate over all policy documents (heatmap,
+stacked themes bar) now include a "Top N documents" selector above each
+chart so the view can be scoped to the most-relevant subset without
+re-running the analysis.
 """
 
 from __future__ import annotations
@@ -24,6 +29,46 @@ THEME_COLOR_MAP = {
     "Skills Gaps & Workforce Development": "#a29bfe",
     "Policy Support for Downstream Applications": "#55efc4",
 }
+
+# ── helpers ────────────────────────────────────────────────────────────────
+
+def _top_n_docs(df: pd.DataFrame, n: int, score_col: str = "Final Score") -> list[str]:
+    """Return the full (untruncated) document names of the top-N by mean score."""
+    return (
+        df.groupby("Document")[score_col]
+        .mean()
+        .sort_values(ascending=False)
+        .head(n)
+        .index.tolist()
+    )
+
+
+def _top_n_selector(
+    df: pd.DataFrame,
+    key_suffix: str,
+    score_col: str = "Final Score",
+    default: int = 10,
+) -> int:
+    """
+    Renders a compact radio that lets the user pick between Top 10, Top 20,
+    or All documents.  Returns the chosen integer (or len(unique docs) for All).
+    """
+    total = df["Document"].nunique()
+    options = [10, 20, total]
+    labels  = ["Top 10", "Top 20", f"All ({total})"]
+    # only show options that make sense
+    shown = [(lbl, val) for lbl, val in zip(labels, options) if val <= total]
+    if len(shown) <= 1:
+        return total  # nothing to choose — just return all
+
+    chosen_lbl = st.radio(
+        "Documents shown",
+        [lbl for lbl, _ in shown],
+        index=0,
+        horizontal=True,
+        key=f"topn_{key_suffix}",
+    )
+    return dict(shown)[chosen_lbl]
 
 
 def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
@@ -50,7 +95,6 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
         )
         return
 
-    # Truncate long document names for all charts
     def short_name(name: str, n: int = 35) -> str:
         return name[:n] + "…" if len(name) > n else name
 
@@ -114,7 +158,7 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
     st.markdown("#### Score distribution")
     try:
         valid_t = taxonomy.get("thresholds", {}).get("valid_match", 0.50)
-        weak_t = taxonomy.get("thresholds", {}).get("weak_match", 0.35)
+        weak_t  = taxonomy.get("thresholds", {}).get("weak_match",  0.35)
 
         fig3 = px.histogram(
             df, x="Final Score", nbins=40,
@@ -128,9 +172,11 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
             template="plotly_dark", barmode="overlay", opacity=0.75,
         )
         fig3.add_vline(x=valid_t, line_dash="dash", line_color="#00b894",
-                       annotation_text=f"Valid ≥{valid_t}", annotation_position="top right")
+                       annotation_text=f"Valid ≥{valid_t}",
+                       annotation_position="top right")
         fig3.add_vline(x=weak_t, line_dash="dash", line_color="#fdcb6e",
-                       annotation_text=f"Weak ≥{weak_t}", annotation_position="top left")
+                       annotation_text=f"Weak ≥{weak_t}",
+                       annotation_position="top left")
         fig3.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=320)
         st.plotly_chart(fig3, use_container_width=True)
     except Exception as e:
@@ -138,14 +184,32 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
 
     st.divider()
 
-    # ---- 4. Policy × Theme heatmap ------------------------------------
+    # ---- 4. Policy × Skills theme heatmap  (TOP-N) --------------------
     st.markdown("#### Policy × Skills theme heatmap")
-    st.caption("Colour = max final score per cell")
+    st.caption("Colour = max final score per cell. Ranked by mean score across themes.")
+
     try:
-        pivot = relevant.pivot_table(
-            index="Doc", columns="Theme",
-            values="Final Score", aggfunc="max",
-        ).fillna(0)
+        _c_sel, _c_info = st.columns([3, 7])
+        with _c_sel:
+            n4 = _top_n_selector(relevant, key_suffix="heatmap")
+        with _c_info:
+            if relevant["Document"].nunique() > n4:
+                st.caption(
+                    f"Showing the {n4} documents with the highest mean relevance score. "
+                    "Increase to see more, or export the full set as CSV from the Results page."
+                )
+
+        top_docs4 = _top_n_docs(relevant, n4)
+        pivot = (
+            relevant[relevant["Document"].isin(top_docs4)]
+            .pivot_table(
+                index="Doc", columns="Theme",
+                values="Final Score", aggfunc="max",
+            )
+            .fillna(0)
+        )
+        # Re-order rows by mean score descending (most relevant at top)
+        pivot = pivot.loc[pivot.mean(axis=1).sort_values(ascending=True).index]
 
         if not pivot.empty:
             fig4 = px.imshow(
@@ -168,11 +232,31 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
 
     st.divider()
 
-    # ---- 5. Themes per document stacked bar ---------------------------
+    # ---- 5. Skill themes per document stacked bar  (TOP-N) ------------
     st.markdown("#### Skill themes per document")
+    st.caption("Ranked by total evidence excerpts.")
+
     try:
+        _c_sel5, _c_info5 = st.columns([3, 7])
+        with _c_sel5:
+            n5 = _top_n_selector(relevant, key_suffix="themes_bar")
+        with _c_info5:
+            if relevant["Document"].nunique() > n5:
+                st.caption(
+                    f"Showing the {n5} documents with the most evidence excerpts."
+                )
+
+        # For this chart rank by excerpt count, not score
+        top_docs5 = (
+            relevant.groupby("Document")
+            .size()
+            .sort_values(ascending=False)
+            .head(n5)
+            .index.tolist()
+        )
         theme_counts = (
-            relevant.groupby(["Doc", "Theme"], as_index=False)
+            relevant[relevant["Document"].isin(top_docs5)]
+            .groupby(["Doc", "Theme"], as_index=False)
             .size()
             .rename(columns={"size": "Count"})
         )

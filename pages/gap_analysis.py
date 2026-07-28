@@ -1,4 +1,7 @@
 """
+v1.3 change: Coverage heatmap, Commitment strength per policy, and
+Policy × Skills theme heatmap all include a Top-10/20/All selector.
+
 pages/gap_analysis.py
 ---------------------
 Policy Intelligence Dashboard — four analytical views:
@@ -67,6 +70,32 @@ def _short_name(name: str, max_len: int = 30) -> str:
     return name[:max_len] + "…" if len(name) > max_len else name
 
 
+def _top_n_docs_by_coverage(coverage: dict, docs: list, n: int) -> list:
+    """Return top-N docs ranked by number of MODERATE/STRONG themes."""
+    scores = {
+        d: sum(1 for v in coverage[d].values() if v.coverage_level in ("MODERATE", "STRONG"))
+        for d in docs
+    }
+    return sorted(docs, key=lambda d: scores[d], reverse=True)[:n]
+
+
+def _gap_top_n_selector(docs: list, key_suffix: str, default: int = 10) -> int:
+    """Compact Top-10 / Top-20 / All radio for gap analysis charts."""
+    total   = len(docs)
+    options = [o for o in [10, 20, total] if o <= total]
+    if len(set(options)) <= 1:
+        return total
+    labels = [f"Top {o}" if o < total else f"All ({total})" for o in options]
+    chosen = st.radio(
+        "Documents shown",
+        labels,
+        index=0,
+        horizontal=True,
+        key=f"gap_topn_{key_suffix}",
+    )
+    return options[labels.index(chosen)]
+
+
 # ---------------------------------------------------------------------------
 # Main render function
 # ---------------------------------------------------------------------------
@@ -131,20 +160,34 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
 
         st.divider()
 
-        # ---- Coverage heatmap: docs × themes --------------------------------
-        st.markdown("#### Coverage heatmap — all policies × all themes")
+        # ---- Coverage heatmap: docs × themes  (TOP-N) ----------------------
+        st.markdown("#### Coverage heatmap — policies × all themes")
+        st.caption("Ranked by number of MODERATE/STRONG themes per document.")
+
+        _hm_sel, _hm_info = st.columns([3, 7])
+        with _hm_sel:
+            n_heat = _gap_top_n_selector(docs, key_suffix="coverage_heat")
+        with _hm_info:
+            if n_heat < len(docs):
+                st.caption(
+                    f"Showing the {n_heat} most-covered documents. "
+                    "Increase to see more."
+                )
+
+        heat_docs = _top_n_docs_by_coverage(coverage, docs, n_heat)
+        heat_short = [_short_name(d) for d in heat_docs]
 
         # Build numeric matrix (0=MISSING, 1=WEAK, 2=MODERATE, 3=STRONG)
         level_to_num = {"MISSING": 0, "WEAK": 1, "MODERATE": 2, "STRONG": 3}
         matrix_data = []
-        for doc in docs:
+        for doc in heat_docs:
             row = [level_to_num.get(coverage[doc][t].coverage_level, 0) for t in themes]
             matrix_data.append(row)
 
         fig_heat = go.Figure(data=go.Heatmap(
             z=matrix_data,
             x=themes,
-            y=short_docs,
+            y=heat_short,
             colorscale=[
                 [0.0,  "#2d3436"],
                 [0.33, "#e17055"],
@@ -164,11 +207,11 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
             ),
             text=[[
                 coverage[doc][t].coverage_level for t in themes
-            ] for doc in docs],
+            ] for doc in heat_docs],
         ))
         fig_heat.update_layout(
             template="plotly_dark",
-            height=max(400, len(docs) * 28),
+            height=max(300, n_heat * 32),
             margin=dict(l=10, r=10, t=10, b=10),
             xaxis_tickangle=-35,
         )
@@ -419,12 +462,33 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 )
                 st.plotly_chart(fig_tcomm, use_container_width=True)
 
-            # ---- Per-doc commitment breakdown stacked bar ------------------
+            # ---- Per-doc commitment breakdown stacked bar  (TOP-N) -----------
             st.divider()
             st.markdown("#### Commitment strength per policy")
+            st.caption("Ranked by total number of commitment-tagged excerpts.")
+
+            _cs_sel, _cs_info = st.columns([3, 7])
+            with _cs_sel:
+                all_comm_docs = df_comm["Document"].unique().tolist()
+                n_comm = _gap_top_n_selector(all_comm_docs, key_suffix="commit_stack")
+            with _cs_info:
+                if n_comm < len(all_comm_docs):
+                    st.caption(
+                        f"Showing the {n_comm} documents with the most commitment-tagged excerpts."
+                    )
+
+            # Rank by total excerpt count
+            top_comm_docs = (
+                df_comm.groupby("Document")
+                .size()
+                .sort_values(ascending=False)
+                .head(n_comm)
+                .index.tolist()
+            )
 
             doc_comm = (
-                df_comm.groupby(["Document", "Commitment Level"])
+                df_comm[df_comm["Document"].isin(top_comm_docs)]
+                .groupby(["Document", "Commitment Level"])
                 .size()
                 .reset_index(name="Count")
             )
@@ -445,7 +509,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 barmode="stack",
             )
             fig_stack.update_layout(
-                height=max(350, len(docs) * 28),
+                height=max(300, n_comm * 32),
                 margin=dict(l=10, r=10, t=10, b=10),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
