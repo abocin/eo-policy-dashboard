@@ -33,6 +33,12 @@ import streamlit as st
 from core.taxonomy_loader import load_taxonomy, taxonomy_to_display
 from core.pipeline import process_documents
 from core.search_engine import SearchResult
+from core.corpus_folders import (
+    CORPUS_ROOT,
+    create_corpus_folder,
+    folder_label,
+    list_corpus_folders,
+)
 from core.cache_manager import (
     discover_pdfs,
     cache_stats,
@@ -226,43 +232,42 @@ with st.sidebar:
         ),
     )
 
-    # Data folder structure (under the /data volume mount on Railway):
-    #   /data/pdfs     — default corpus, used unless PDF_FOLDER says otherwise.
-    #   /data/destine  — a separate, isolated corpus for the "destine" analysis
-    #                     workflow. Keeping it in its own folder lets us run
-    #                     LLM analysis on just those documents without mixing
-    #                     them in with (or re-processing) /data/pdfs.
-    # "Custom path" falls back to the PDF_FOLDER env var / manual text input,
-    # preserving the original behaviour.
-    folder_choice = st.selectbox(
-        "Data folder",
-        ["pdfs (default)", "destine", "Custom path"],
+    # Corpus folders are discovered at runtime from the volume root, so any
+    # number can live side by side (/data/pdfs, /data/destine, /data/trends,
+    # ...). See core/corpus_folders.py. Nothing here is hard-coded per corpus.
+    _folders = list_corpus_folders()
+    _NEW = "➕ New folder…"
+    _CUSTOM = "✏️ Custom path…"
+    _fmap = {folder_label(f): f for f in _folders}
+    _choice = st.selectbox(
+        "Corpus folder",
+        list(_fmap.keys()) + [_NEW, _CUSTOM],
+        key="corpus_folder_choice",
         help=(
-            "Choose which volume subfolder to read PDFs from.\n\n"
-            "**pdfs (default)** — `/data/pdfs`, the primary corpus.\n\n"
-            "**destine** — `/data/destine`, a separate corpus kept isolated "
-            "from `/data/pdfs` for independent analysis.\n\n"
-            "**Custom path** — enter any folder path manually (uses "
-            "`PDF_FOLDER` env var if set)."
+            f"Each folder under `{CORPUS_ROOT}` is a separate, isolated corpus. "
+            "Analysis runs only on the folder you select here."
         ),
     )
 
-    # The repo's ./data directory lives at /app/data and is NOT the Railway
-    # volume (mounted at /data), so committing data/destine/.gitkeep does not
-    # create the folder on the volume. Create both subfolders on first use so
-    # the selector never points at a missing path.
-    for _vol_sub in ("/data/pdfs", "/data/destine"):
-        try:
-            Path(_vol_sub).mkdir(parents=True, exist_ok=True)
-        except OSError:
-            pass  # /data not mounted (e.g. local dev) — harmless
-
-    if folder_choice == "pdfs (default)":
-        _default_folder = "/data/pdfs"
-    elif folder_choice == "destine":
-        _default_folder = "/data/destine"
-    else:
+    _default_folder = ""
+    if _choice == _NEW:
+        _new_name = st.text_input(
+            "New folder name",
+            key="corpus_new_name",
+            placeholder="trends",
+            help="Letters, digits, dash, underscore. Created under the volume root.",
+        )
+        if st.button("Create folder", key="corpus_create_btn"):
+            try:
+                _created = create_corpus_folder(_new_name)
+                _discover_pdfs_cached.clear()
+                st.success(f"Created `{_created}` — now select it above.")
+            except (ValueError, OSError) as _exc:
+                st.error(f"Could not create folder: {_exc}")
+    elif _choice == _CUSTOM:
         _default_folder = os.environ.get("PDF_FOLDER", "")
+    else:
+        _default_folder = str(_fmap[_choice])
 
     uploaded_files = []
     folder_path_input = ""
@@ -275,7 +280,7 @@ with st.sidebar:
             "PDF folder path",
             value=_default_folder,
             placeholder="/data/pdfs",
-            disabled=folder_choice != "Custom path",
+            disabled=_choice != _CUSTOM,
             help=(
                 "Absolute path to a directory of PDFs on the server.\n"
                 "On Railway: mount a volume at `/data`, copy PDFs to `/data/pdfs`, "

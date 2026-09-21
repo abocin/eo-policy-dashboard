@@ -16,26 +16,41 @@ from pathlib import Path
 
 import streamlit as st
 
+from core.corpus_folders import (
+    create_corpus_folder,
+    folder_label,
+    list_corpus_folders,
+)
+
 _DEFAULT_FOLDER = Path(os.environ.get("PDF_FOLDER", "/data/pdfs"))
 
 st.set_page_config(page_title="PDF File Manager", page_icon="🗂️", layout="wide")
 st.title("🗂️ PDF File Manager")
 
-# Which volume subfolder are we managing? Mirrors the "Data folder" selector on
-# the main page so destine documents can be uploaded without touching pdfs.
-_TARGETS = {
-    "pdfs (default)": Path("/data/pdfs"),
-    "destine": Path("/data/destine"),
-    f"Custom / PDF_FOLDER ({_DEFAULT_FOLDER})": _DEFAULT_FOLDER,
-}
-_choice = st.radio(
+# Target folder is discovered from the volume root, exactly like the main page,
+# so any number of corpora can be managed without a code change here.
+_folders = list_corpus_folders()
+_NEWF = "➕ New folder…"
+_targets = {folder_label(f): f for f in _folders}
+_choice = st.selectbox(
     "Target folder",
-    list(_TARGETS),
-    horizontal=True,
+    list(_targets.keys()) + [_NEWF],
     key="admin_target_folder",
-    help="Uploads, deletions and the file list below all apply to this folder only.",
+    help="Everything on this page — the file list, deletions, additions — "
+         "applies to this folder only.",
 )
-PDF_FOLDER = _TARGETS[_choice]
+
+if _choice == _NEWF:
+    _nm = st.text_input("New folder name", key="admin_new_folder", placeholder="trends")
+    if st.button("Create folder", key="admin_create_folder"):
+        try:
+            _c = create_corpus_folder(_nm)
+            st.success(f"Created `{_c}` — select it above.")
+        except (ValueError, OSError) as _exc:
+            st.error(f"Could not create folder: {_exc}")
+    st.stop()
+
+PDF_FOLDER = _targets[_choice]
 
 st.caption(f"Managing files in `{PDF_FOLDER}`")
 
@@ -275,7 +290,7 @@ def _render_copy_from_folder(dest: Path) -> None:
         "no browser upload involved."
     )
 
-    src_options = [p for p in (Path("/data/pdfs"), Path("/data/destine")) if p != dest]
+    src_options = [p for p in list_corpus_folders() if p != dest]
     src_label = st.selectbox(
         "Source folder",
         [str(p) for p in src_options] + ["Other path…"],
