@@ -16,10 +16,27 @@ from pathlib import Path
 
 import streamlit as st
 
-PDF_FOLDER = Path(os.environ.get("PDF_FOLDER", "/data/pdfs"))
+_DEFAULT_FOLDER = Path(os.environ.get("PDF_FOLDER", "/data/pdfs"))
 
 st.set_page_config(page_title="PDF File Manager", page_icon="🗂️", layout="wide")
 st.title("🗂️ PDF File Manager")
+
+# Which volume subfolder are we managing? Mirrors the "Data folder" selector on
+# the main page so destine documents can be uploaded without touching pdfs.
+_TARGETS = {
+    "pdfs (default)": Path("/data/pdfs"),
+    "destine": Path("/data/destine"),
+    f"Custom / PDF_FOLDER ({_DEFAULT_FOLDER})": _DEFAULT_FOLDER,
+}
+_choice = st.radio(
+    "Target folder",
+    list(_TARGETS),
+    horizontal=True,
+    key="admin_target_folder",
+    help="Uploads, deletions and the file list below all apply to this folder only.",
+)
+PDF_FOLDER = _TARGETS[_choice]
+
 st.caption(f"Managing files in `{PDF_FOLDER}`")
 
 # Ensure folder exists
