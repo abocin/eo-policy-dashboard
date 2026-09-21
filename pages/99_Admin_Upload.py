@@ -95,9 +95,10 @@ st.info(
     icon="ℹ️",
 )
 
-tab_manage, tab_url, tab_copy, tab_upload = st.tabs(
+tab_manage, tab_gh, tab_url, tab_copy, tab_upload = st.tabs(
     [
         "🗑️ Manage PDFs",
+        "🐙 Import from GitHub",
         "🌐 Add PDFs from URL",
         "📥 Copy PDFs between folders",
         "⬆️ Upload PDFs from computer",
@@ -186,6 +187,100 @@ _MAX_UNCOMPRESSED = 4 * 1024 ** 3   # 4 GB total
 _MAX_RATIO = 200                    # compressed:uncompressed
 
 
+def _parse_github_target(raw: str) -> dict:
+    """Parse a GitHub URL or 'owner/repo' into an import target.
+
+    Accepts:
+      https://github.com/owner/repo
+      https://github.com/owner/repo/tree/<branch>/<path>
+      https://github.com/owner/repo/releases/tag/<tag>
+      owner/repo
+    """
+    import re as _re
+
+    s = raw.strip().rstrip("/")
+    s = _re.sub(r"^https?://(www\.)?github\.com/", "", s)
+    parts = [p for p in s.split("/") if p]
+    if len(parts) < 2:
+        raise ValueError("Expected 'owner/repo' or a github.com URL.")
+
+    owner, repo = parts[0], parts[1]
+    rest = parts[2:]
+
+    if rest[:2] == ["releases", "tag"] and len(rest) > 2:
+        return {"owner": owner, "repo": repo, "kind": "release", "tag": rest[2]}
+    if rest[:1] == ["releases"]:
+        return {"owner": owner, "repo": repo, "kind": "release", "tag": None}
+    if rest[:1] == ["tree"] and len(rest) > 1:
+        return {"owner": owner, "repo": repo, "kind": "tree",
+                "ref": rest[1], "path": "/".join(rest[2:])}
+    return {"owner": owner, "repo": repo, "kind": "tree", "ref": None, "path": ""}
+
+
+def _github_headers() -> dict:
+    """Auth headers if a token is configured. Never hard-code a token here."""
+    h = {"Accept": "application/vnd.github+json",
+         "User-Agent": "eo-policy-dashboard"}
+    tok = os.environ.get("GITHUB_TOKEN", "").strip()
+    if tok:
+        h["Authorization"] = f"Bearer {tok}"
+    return h
+
+
+def _github_list_files(target: dict) -> list[dict]:
+    """Return [{name, url, size}] for every .pdf/.zip reachable from target.
+
+    Walks repo folders recursively, or lists a release's assets. Private repos
+    require GITHUB_TOKEN to be set as an environment variable.
+    """
+    import requests
+
+    api = "https://api.github.com"
+    o, r = target["owner"], target["repo"]
+    out: list[dict] = []
+
+    def _wanted(n: str) -> bool:
+        return n.lower().endswith((".pdf", ".zip"))
+
+    if target["kind"] == "release":
+        tag = target.get("tag")
+        url = (f"{api}/repos/{o}/{r}/releases/tags/{tag}" if tag
+               else f"{api}/repos/{o}/{r}/releases/latest")
+        resp = requests.get(url, headers=_github_headers(), timeout=60)
+        resp.raise_for_status()
+        for a in resp.json().get("assets", []):
+            if _wanted(a["name"]):
+                # browser_download_url works for public repos; for private ones
+                # the API asset URL plus an Accept: octet-stream header is used.
+                out.append({"name": a["name"],
+                            "url": a["browser_download_url"],
+                            "api_url": a["url"],
+                            "size": a.get("size", 0)})
+        return out
+
+    # ---- repo tree ------------------------------------------------------
+    ref = target.get("ref")
+    stack = [target.get("path", "")]
+    while stack:
+        path = stack.pop()
+        url = f"{api}/repos/{o}/{r}/contents/{path}"
+        resp = requests.get(url, headers=_github_headers(),
+                            params={"ref": ref} if ref else None, timeout=60)
+        resp.raise_for_status()
+        items = resp.json()
+        if isinstance(items, dict):          # a single file was addressed
+            items = [items]
+        for it in items:
+            if it["type"] == "dir":
+                stack.append(it["path"])
+            elif it["type"] == "file" and _wanted(it["name"]):
+                out.append({"name": it["name"],
+                            "url": it.get("download_url"),
+                            "api_url": it.get("url"),
+                            "size": it.get("size", 0)})
+    return out
+
+
 def _normalise_share_url(url: str) -> str:
     """Turn common 'share page' links into direct-download links.
 
@@ -268,6 +363,135 @@ def _extract_pdfs_from_zip(zip_path: Path, dest: Path) -> tuple[list[str], list[
             added.append(f"{base} ({info.file_size / 1_048_576:.1f} MB)")
 
     return added, skipped
+
+
+def _render_github_import(dest: Path) -> None:
+    """Import PDFs (or a zip of PDFs) straight from a GitHub repo or release."""
+    import requests
+
+    st.markdown(
+        f"Pull documents **directly from GitHub** into `{dest}`. Paste a repo "
+        "URL, a folder URL, or a release URL:"
+    )
+    st.code(
+        "https://github.com/abocin/eo-policy-dashboard/tree/main/data/destine\n"
+        "https://github.com/abocin/eo-policy-dashboard/releases/tag/destine-v1\n"
+        "abocin/eo-policy-dashboard",
+        language=None,
+    )
+    ref = st.text_input(
+        "GitHub repo, folder or release URL",
+        key="gh_target",
+        placeholder="https://github.com/owner/repo/tree/main/pdfs",
+    )
+    if not os.environ.get("GITHUB_TOKEN", "").strip():
+        st.caption(
+            "ℹ️ Public repos work as-is. For a **private** repo, set a "
+            "`GITHUB_TOKEN` environment variable on the Railway service "
+            "(never paste a token into this page)."
+        )
+
+    if st.button("🔎 List documents", disabled=not ref.strip(), key="gh_list"):
+        try:
+            target = _parse_github_target(ref)
+            with st.spinner("Querying GitHub…"):
+                found = _github_list_files(target)
+            st.session_state["gh_found"] = found
+            if not found:
+                st.warning(
+                    "No .pdf or .zip files found there. Check the folder path, "
+                    "the branch name, and that the repo is public (or that "
+                    "GITHUB_TOKEN is set)."
+                )
+        except ValueError as exc:
+            st.error(f"{exc}")
+        except requests.HTTPError as exc:
+            _code = exc.response.status_code if exc.response is not None else "?"
+            if _code == 404:
+                st.error(
+                    "GitHub returned 404 — the repo, branch or folder does not "
+                    "exist, or it is private and GITHUB_TOKEN is not set."
+                )
+            elif _code == 403:
+                st.error(
+                    "GitHub returned 403 — API rate limit reached. Setting "
+                    "GITHUB_TOKEN raises the limit substantially."
+                )
+            else:
+                st.error(f"GitHub error {_code}: {exc}")
+        except requests.RequestException as exc:
+            st.error(f"Could not reach GitHub: {exc}")
+
+    found = st.session_state.get("gh_found") or []
+    if not found:
+        return
+
+    _total_mb = sum(f["size"] for f in found) / 1_048_576
+    st.success(f"Found {len(found)} file(s), {_total_mb:.1f} MB total.")
+    names = [f"{f['name']}  ({f['size'] / 1_048_576:.1f} MB)" for f in found]
+    chosen = st.multiselect("Files to import", names, default=names, key="gh_pick")
+    if not st.button(f"⬇️ Import {len(chosen)} file(s)", type="primary",
+                     disabled=not chosen, key="gh_import"):
+        return
+
+    by_label = dict(zip(names, found))
+    prog = st.progress(0.0)
+    ok, bad = [], []
+    for i, label in enumerate(chosen, 1):
+        f = by_label[label]
+        prog.progress(i / len(chosen), text=f"{i}/{len(chosen)} — {f['name']}")
+        try:
+            # Prefer the plain download URL; fall back to the API URL with an
+            # octet-stream Accept header, which is what private repos need.
+            url = f.get("url") or f["api_url"]
+            headers = _github_headers()
+            if not f.get("url"):
+                headers["Accept"] = "application/octet-stream"
+            resp = requests.get(url, headers=headers, timeout=600, stream=True)
+            resp.raise_for_status()
+
+            if f["name"].lower().endswith(".zip"):
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tf:
+                    for chunk in resp.iter_content(1 << 20):
+                        tf.write(chunk)
+                    zp = Path(tf.name)
+                try:
+                    added, skipped = _extract_pdfs_from_zip(zp, dest)
+                    ok.extend(added)
+                    bad.extend(skipped)
+                finally:
+                    zp.unlink(missing_ok=True)
+                continue
+
+            target_path = dest / f["name"]
+            if target_path.exists():
+                bad.append(f"{f['name']}: already present")
+                continue
+            tmp = target_path.with_suffix(".part")
+            size = 0
+            with open(tmp, "wb") as fh:
+                for chunk in resp.iter_content(1 << 20):
+                    fh.write(chunk)
+                    size += len(chunk)
+            with open(tmp, "rb") as fh:
+                if fh.read(5) != b"%PDF-":
+                    tmp.unlink(missing_ok=True)
+                    bad.append(f"{f['name']}: not a valid PDF")
+                    continue
+            tmp.rename(target_path)
+            ok.append(f"{f['name']} ({size / 1_048_576:.1f} MB)")
+        except Exception as exc:
+            bad.append(f"{f['name']}: {exc}")
+
+    prog.empty()
+    if ok:
+        st.success(f"Imported {len(ok)} file(s):\n" + "\n".join(f"• {n}" for n in ok))
+    if bad:
+        st.warning("Not imported:\n" + "\n".join(f"• {b}" for b in bad))
+    if ok:
+        st.session_state.pop("gh_found", None)
+        st.rerun()
 
 
 # ===========================================================================
@@ -545,3 +769,10 @@ with tab_copy:
 # ===========================================================================
 with tab_url:
     _render_fetch_from_url(PDF_FOLDER)
+
+
+# ===========================================================================
+# TAB — Import from GitHub
+# ===========================================================================
+with tab_gh:
+    _render_github_import(PDF_FOLDER)
