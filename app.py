@@ -73,11 +73,33 @@ logger = logging.getLogger(__name__)
 
 @st.cache_data(show_spinner=False)
 def _load_taxonomy_cached(yaml_bytes: Optional[bytes]) -> Dict[str, Any]:
-    """Load taxonomy from YAML bytes, or fall back to built-in file."""
-    if yaml_bytes:
-        import yaml as _yaml  # type: ignore
-        return _yaml.safe_load(yaml_bytes)
-    return load_taxonomy()
+    """Load taxonomy from YAML bytes, or fall back to built-in file.
+
+    Bytes can come from the uploader, a pasted text area, or a file on the
+    volume. Pasted text in particular is easy to get wrong, so malformed or
+    non-mapping YAML falls back to the built-in taxonomy with a visible
+    warning instead of raising and blanking the whole app.
+    """
+    if not yaml_bytes:
+        return load_taxonomy()
+
+    import yaml as _yaml  # type: ignore
+    try:
+        parsed = _yaml.safe_load(yaml_bytes)
+    except _yaml.YAMLError as exc:
+        st.warning(f"Custom taxonomy is not valid YAML — using built-in. ({exc})")
+        return load_taxonomy()
+
+    if not isinstance(parsed, dict):
+        st.warning(
+            "Custom taxonomy must be a YAML mapping (got "
+            f"{type(parsed).__name__}) — using built-in."
+        )
+        return load_taxonomy()
+    if not parsed.get("themes"):
+        st.warning("Custom taxonomy has no 'themes' key — using built-in.")
+        return load_taxonomy()
+    return parsed
 
 
 # ---- page config -----------------------------------------------------------
@@ -297,16 +319,87 @@ with st.sidebar:
     st.subheader("2. Taxonomy")
     taxonomy_source = st.radio(
         "Taxonomy source",
-        ["Built-in (default)", "Upload custom YAML"],
-        horizontal=True,
+        ["Built-in (default)", "Upload custom YAML", "Paste YAML", "Server file path"],
+        horizontal=False,
+        key="taxonomy_source",
+        help=(
+            "If the upload button does not open a file dialog in your browser, "
+            "use **Paste YAML** or **Server file path** instead — both avoid "
+            "the browser file picker entirely."
+        ),
     )
     custom_taxonomy_file = None
+    pasted_taxonomy_bytes: bytes | None = None
+
     if taxonomy_source == "Upload custom YAML":
         custom_taxonomy_file = st.file_uploader(
             "Upload taxonomy YAML",
             type=["yaml", "yml"],
+            key="taxonomy_uploader",
             help="Must follow the same schema as config/taxonomy.yaml",
         )
+        st.caption(
+            "Click the compact **⬆ Upload** button above. If no file dialog "
+            "appears, switch to **Paste YAML** or **Server file path**."
+        )
+
+    elif taxonomy_source == "Paste YAML":
+        _pasted = st.text_area(
+            "Paste taxonomy YAML",
+            height=180,
+            key="taxonomy_paste",
+            placeholder="themes:\n  - name: ...\n    keywords: [...]",
+            help="Copy the contents of your YAML file and paste it here.",
+        )
+        if _pasted.strip():
+            pasted_taxonomy_bytes = _pasted.encode("utf-8")
+            st.caption(f"✅ {len(pasted_taxonomy_bytes):,} bytes pasted.")
+        else:
+            st.caption("Paste YAML text to override the built-in taxonomy.")
+
+    elif taxonomy_source == "Server file path":
+        # Offer anything already sitting on the volume, plus a manual path box.
+        _yaml_candidates: list[str] = []
+        for _d in (Path("/data"), Path("/data/taxonomies"), Path("config")):
+            try:
+                _yaml_candidates += [
+                    str(q) for q in sorted(_d.glob("*.y*ml")) if q.is_file()
+                ]
+            except OSError:
+                pass
+        _yaml_candidates = list(dict.fromkeys(_yaml_candidates))
+
+        _picked = ""
+        if _yaml_candidates:
+            _picked = st.selectbox(
+                "YAML files found on the server",
+                ["(enter a path manually)"] + _yaml_candidates,
+                key="taxonomy_server_pick",
+            )
+            if _picked == "(enter a path manually)":
+                _picked = ""
+        _manual = st.text_input(
+            "Or an absolute path",
+            value="",
+            key="taxonomy_server_path",
+            placeholder="/data/my_taxonomy.yaml",
+        )
+        _path_str = _manual.strip() or _picked
+        if _path_str:
+            _yp = Path(_path_str)
+            if not _yp.is_file():
+                st.error(f"❌ Not found: `{_yp}`")
+            else:
+                try:
+                    pasted_taxonomy_bytes = _yp.read_bytes()
+                    st.caption(f"✅ Loaded `{_yp.name}` ({len(pasted_taxonomy_bytes):,} bytes).")
+                except OSError as _exc:
+                    st.error(f"❌ Cannot read `{_yp}`: {_exc}")
+        else:
+            st.caption(
+                "Tip: upload the YAML to the volume via the **PDF File Manager** "
+                "page, or point at any path the server can read."
+            )
 
     # ---- 3. Thresholds -----------------------------------------------------
     st.subheader("3. Thresholds")
@@ -360,7 +453,10 @@ with st.sidebar:
     # ---- Search mode badge -------------------------------------------------
     st.markdown("**Search mode**")
 
-    taxonomy_bytes = custom_taxonomy_file.read() if custom_taxonomy_file else None
+    taxonomy_bytes = (
+        custom_taxonomy_file.read() if custom_taxonomy_file
+        else pasted_taxonomy_bytes
+    )
     taxonomy = _load_taxonomy_cached(taxonomy_bytes)
 
     _scfg = taxonomy.get("search", {})
