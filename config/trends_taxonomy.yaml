@@ -1,0 +1,1125 @@
+themes:
+- label: Market — Commercialisation of Space Services
+  description: 'Evidence that space services are shifting from publicly funded to commercially driven, with growing private
+    sector participation, new entrants, and market competition across the downstream value chain.
+
+    '
+  driver: Falling launch costs, miniaturisation, and surplus satellite capacity
+  trend: Commercialisation and privatisation of downstream space services
+  sector_impact: New business models; competition with public agencies; price pressure
+  occupation_impact: Demand for commercial analysts, product managers, sales engineers
+  skills_implications: Business development, product management, market analysis, commercial law
+  keywords:
+  - commercial space market
+  - privatisation of space
+  - new space economy
+  - private satellite operators
+  - commercial downstream services
+  - space start-ups
+  - venture capital space
+  - space investment
+  - commercial EO services
+  - NewSpace
+  - commercial remote sensing
+  - private sector space
+  - market entry space
+  - space industry growth
+  - commercial GNSS services
+  - space services market
+  - downstream market
+  - space economy revenue
+  - commercial launch services
+  - small satellite market
+  - commercialisering ruimtevaart
+  - private ruimtesector
+  - commerciële aardobservatiediensten
+  - ruimtevaartmarkt
+  - commercialisation spatiale
+  - secteur spatial commercial
+  - marché aval espace
+  - kommerzielle Raumfahrt
+  - Raumfahrtmarkt
+  - private Raumfahrtunternehmen
+  queries:
+  - commercialisation and privatisation of space services downstream market
+  - private investment and new entrants in the space economy
+  - NewSpace start-ups and commercial satellite operators market growth
+  - downstream space services revenue and market expansion
+  - venture capital investment in space technology companies
+- label: Market — Emergence of New Business Models
+  description: 'Evidence of new ways of delivering, monetising, or consuming space-derived data and services: data-as-a-service,
+    platform models, analytics APIs, subscription services, and outcome-based contracts.
+
+    '
+  driver: Cloud computing, API economies, and open data policies
+  trend: Shift from one-off data sales to continuous data services and analytics platforms
+  sector_impact: Platform consolidation; SaaS-based EO; recurring revenue models
+  occupation_impact: Platform architects, data product managers, API developers
+  skills_implications: Cloud platforms, API design, data engineering, product analytics
+  keywords:
+  - data as a service
+  - DaaS space
+  - analytics platform satellite
+  - EO platform
+  - geospatial API
+  - subscription satellite data
+  - outcome-based contracts
+  - platform business model
+  - space data marketplace
+  - cloud-based satellite services
+  - geospatial SaaS
+  - value-added services EO
+  - space data broker
+  - digital twin space
+  - satellite analytics subscription
+  - datadiensten ruimtevaart
+  - analyticsplatform satelliet
+  - données spatiales service
+  - plateforme géospatiale
+  queries:
+  - new business models satellite data analytics platform as a service
+  - EO data marketplace and subscription services geospatial
+  - cloud-native satellite data services API digital platform
+  - value-added services downstream space economy
+- label: Market — Integration of Space into Mainstream Sectors
+  description: 'Evidence that satellite-derived data and services are being embedded into non-space sectors (agriculture,
+    insurance, finance, energy, transport, climate, urban planning) as standard operational tools.
+
+    '
+  driver: Improved data quality, lower costs, and increased awareness among end users
+  trend: Mainstreaming of EO and GNSS data into cross-sectoral decision-making
+  sector_impact: Expanded customer base; sector-specific EO products; cross-sector competition
+  occupation_impact: Sector analysts using EO data; domain specialists with geospatial skills
+  skills_implications: Domain knowledge + geospatial literacy; data interpretation for non-specialists
+  keywords:
+  - satellite data agriculture
+  - precision farming EO
+  - insurance satellite
+  - climate monitoring satellite
+  - urban planning geospatial
+  - energy sector EO
+  - transport satellite data
+  - financial services satellite
+  - forestry remote sensing
+  - flood monitoring satellite
+  - disaster management EO
+  - maritime surveillance satellite
+  - infrastructure monitoring EO
+  - carbon monitoring satellite
+  - biodiversity monitoring EO
+  - smart cities satellite
+  - satellietdata landbouw
+  - overstroming satelliet
+  - klimaatmonitoring aardobservatie
+  - agriculture par satellite
+  - surveillance climatique spatiale
+  queries:
+  - integration satellite EO data into agriculture insurance finance energy sectors
+  - mainstream adoption of geospatial data across industries
+  - cross-sector applications of Copernicus and satellite data
+  - EO data used in climate monitoring urban planning disaster response
+- label: Technology — AI-Enabled EO Analytics
+  description: 'Evidence that artificial intelligence and machine learning are being embedded into the EO value chain — from
+    data processing and feature extraction to automated monitoring and decision support systems.
+
+    '
+  driver: Explosion in satellite data volume and maturation of deep learning
+  trend: AI-enabled automation of Earth Observation analytics throughout the value chain
+  sector_impact: Faster, scalable, and more cost-effective EO services; reduced manual analysis
+  occupation_impact: Demand for geospatial AI specialists; decline of manual image analysts
+  skills_implications: Machine learning, Python, computer vision, geospatial analytics, MLOps
+  keywords:
+  - artificial intelligence EO
+  - machine learning satellite
+  - deep learning remote sensing
+  - AI image analysis
+  - automated feature extraction
+  - neural networks geospatial
+  - computer vision satellite
+  - AI-powered EO
+  - foundation models geospatial
+  - large language models geospatial
+  - AI monitoring environment
+  - automated change detection
+  - AI object detection satellite
+  - generative AI geospatial
+  - AI decision support EO
+  - MLOps satellite
+  - AI agriculture satellite
+  - geospatial AI
+  - EO machine learning pipeline
+  - kunstmatige intelligentie aardobservatie
+  - machine learning satelliet
+  - intelligence artificielle observation Terre
+  - apprentissage automatique satellite
+  - künstliche Intelligenz Fernerkundung
+  queries:
+  - artificial intelligence machine learning applied to satellite and EO data analysis
+  - deep learning computer vision for remote sensing and geospatial applications
+  - AI automation of Earth Observation analytics pipelines
+  - foundation models and generative AI for geospatial data
+  - automated monitoring and change detection using satellite imagery
+- label: Technology — Cloud-Native Geospatial Processing
+  description: 'Evidence of a shift from local desktop processing to cloud-native, scalable geospatial data processing — including
+    cloud data cubes, serverless architectures, and platforms like Google Earth Engine, Copernicus DIAS.
+
+    '
+  driver: Growth in satellite data volumes exceeding local processing capacity
+  trend: Migration of EO processing from desktop to cloud-native scalable platforms
+  sector_impact: Democratisation of EO data access; reduced hardware investment
+  occupation_impact: Cloud engineers replacing traditional GIS technicians
+  skills_implications: Cloud computing (AWS, Azure, GCP), Kubernetes, Dask, Zarr, STAC, COG
+  keywords:
+  - cloud computing geospatial
+  - cloud EO processing
+  - Google Earth Engine
+  - Copernicus DIAS
+  - analysis ready data
+  - cloud-native geospatial
+  - data cube satellite
+  - serverless geospatial
+  - scalable satellite processing
+  - cloud data infrastructure EO
+  - STAC catalogue
+  - COG cloud optimised geotiff
+  - Sentinel Hub
+  - planetary computer
+  - OpenEO
+  - Zarr geospatial
+  - cloud HPC satellite
+  - Dask geospatial
+  - cloudverwerking geodata
+  - schaalbaarheid aardobservatie
+  - traitement cloud données satellitaires
+  - géospatial natif cloud
+  queries:
+  - cloud computing for geospatial and satellite data processing
+  - cloud-native EO platforms scalable analysis ready data
+  - Google Earth Engine Copernicus DIAS cloud processing infrastructure
+  - migration from desktop GIS to cloud geospatial workflows
+- label: Technology — Software-Defined Satellites and Constellations
+  description: 'Evidence of proliferation of small satellite constellations, software-defined payloads, and on-orbit processing
+    — transforming the satellite industry towards more agile, reprogrammable, and commercially accessible infrastructure.
+
+    '
+  driver: Miniaturisation, lower launch costs, and advances in software-defined radio
+  trend: Proliferation of small satellite constellations and software-defined space assets
+  sector_impact: Higher revisit rates; increased data volumes; faster product refresh cycles
+  occupation_impact: Systems engineers, software-defined payload engineers, mission architects
+  skills_implications: Systems engineering, software-defined radio, satellite mission design, DevOps for space
+  keywords:
+  - small satellite constellation
+  - CubeSat
+  - nanosatellite
+  - software-defined satellite
+  - software-defined payload
+  - on-orbit processing
+  - edge computing satellite
+  - satellite revisit time
+  - mega-constellation
+  - LEO constellation
+  - satellite swarm
+  - proliferated LEO
+  - reprogrammable satellite
+  - in-orbit servicing
+  - on-board AI satellite
+  - satellite manufacturing
+  - agile satellite mission
+  - mininanosatelliet
+  - kleinere satellietconstellaties
+  - constellation de petits satellites
+  - satellite logiciel
+  queries:
+  - small satellite constellations software-defined payloads on-orbit processing
+  - proliferation of LEO satellites and miniaturisation trends
+  - CubeSat nanosatellite commercial constellation
+  - reprogrammable satellite missions and edge computing in orbit
+- label: Technology — Quantum and Next-Generation Positioning
+  description: 'Evidence of emerging quantum-based sensing, quantum positioning, and next-generation PNT (positioning, navigation,
+    timing) technologies as successors or complements to GNSS.
+
+    '
+  driver: GNSS vulnerability to jamming/spoofing and push for sovereign positioning
+  trend: Development of quantum-enhanced and alternative PNT systems
+  sector_impact: New market segments; sovereign navigation infrastructure; resilient timing
+  occupation_impact: Quantum engineers, PNT specialists, navigation system architects
+  skills_implications: Quantum sensing, inertial navigation, cryptography, systems integration
+  keywords:
+  - quantum positioning
+  - quantum sensing navigation
+  - GNSS resilience
+  - GNSS alternative
+  - PNT positioning navigation timing
+  - GNSS jamming spoofing
+  - quantum gravimetry
+  - atomic clock navigation
+  - quantum inertial navigation
+  - alternative navigation
+  - resilient PNT
+  - sovereign navigation
+  - Galileo high accuracy
+  - multi-constellation GNSS
+  - indoor positioning
+  - quantum technology space
+  - kwantumnavigatie
+  - GNSS-beveiliging
+  - positionnement quantique
+  - résilience GNSS
+  queries:
+  - quantum positioning sensing navigation PNT alternatives to GNSS
+  - GNSS resilience spoofing jamming alternative navigation systems
+  - quantum technology for space and navigation applications
+  - next generation PNT positioning navigation timing space
+- label: Workforce — Talent Shortage and Competition
+  description: 'Evidence of growing demand for skilled professionals in the space sector outpacing supply — including shortages
+    of specialised engineers, data scientists, and software developers.
+
+    '
+  driver: Rapid sector growth and competition from other high-tech industries
+  trend: Widening talent gap in the downstream space sector workforce
+  sector_impact: Recruitment challenges; salary inflation; project delays
+  occupation_impact: High demand for satellite engineers, EO data scientists, software developers
+  skills_implications: Software engineering, data science, satellite systems, signal processing
+  keywords:
+  - talent shortage space
+  - skills shortage space sector
+  - workforce gap space
+  - recruitment space industry
+  - space talent competition
+  - engineer shortage aerospace
+  - space sector employment
+  - space jobs
+  - space workforce demand
+  - hiring space industry
+  - STEM talent pipeline
+  - attract talent space
+  - retain talent space
+  - space careers
+  - aerospace workforce
+  - space human resources
+  - tekort aan talent ruimtevaart
+  - ruimtevaart arbeidsmarkt
+  - personeelstekort ruimtesector
+  - pénurie de talents spatial
+  - recrutement secteur spatial
+  - emplois spatiaux
+  - Fachkräftemangel Raumfahrt
+  - Raumfahrtberufe
+  queries:
+  - talent shortage skills gap workforce space sector industry
+  - recruitment competition for engineers and data scientists space
+  - space sector employment demand STEM pipeline
+  - workforce shortage aerospace satellite industry
+- label: Workforce — Interdisciplinarity and New Professional Profiles
+  description: 'Evidence that space sector roles increasingly require combinations of domain knowledge (environment, agriculture,
+    finance) with technical skills (data science, software, geospatial) — giving rise to new hybrid professional profiles.
+
+    '
+  driver: Mainstreaming of EO/GNSS into non-space sectors
+  trend: Growing demand for interdisciplinary professionals bridging space technology and application domains
+  sector_impact: New job profiles; blurring of sector boundaries; cross-disciplinary teams
+  occupation_impact: Geospatial data scientists, EO application specialists, space policy analysts
+  skills_implications: Cross-domain literacy, communication, collaboration, systems thinking
+  keywords:
+  - interdisciplinary space professional
+  - hybrid skills space
+  - new job profiles space
+  - cross-sector space careers
+  - T-shaped skills
+  - geospatial professional
+  - EO specialist
+  - space application expert
+  - domain expert satellite data
+  - multidisciplinary space team
+  - space data scientist
+  - earth observation analyst
+  - geospatial data analyst
+  - remote sensing specialist
+  - satellite applications professional
+  - interdisciplinair ruimtevaartprofiel
+  - hybride vaardigheden ruimtesector
+  - professionnel interdisciplinaire espace
+  - compétences hybrides spatial
+  queries:
+  - interdisciplinary hybrid professional profiles in the space sector
+  - new job roles combining domain expertise with satellite data skills
+  - T-shaped skills geospatial EO professionals
+  - cross-sector professionals using satellite and EO data
+- label: Workforce — Diversity Equity and Inclusion
+  description: 'Evidence of efforts or gaps related to gender diversity, geographic inclusion, and broadening participation
+    in the space sector workforce.
+
+    '
+  driver: Societal pressure and evidence that diverse teams outperform homogeneous ones
+  trend: Growing focus on diversity, equity, and inclusion in the space workforce
+  sector_impact: Broadened talent pool; improved innovation; reputational considerations
+  occupation_impact: All roles — diversity targets increasingly applied across the value chain
+  skills_implications: Inclusive leadership, intercultural competence, mentoring
+  keywords:
+  - diversity space sector
+  - gender space industry
+  - women in space
+  - inclusion space workforce
+  - underrepresented groups space
+  - equity space careers
+  - diversity STEM
+  - women aerospace
+  - minority space sector
+  - inclusive space industry
+  - gender gap engineering
+  - diversiteit ruimtesector
+  - vrouwen ruimtevaart
+  - diversité secteur spatial
+  - femmes espace
+  queries:
+  - diversity equity inclusion in the space and aerospace workforce
+  - gender gap women in space engineering technology
+  - broadening participation underrepresented groups space sector
+- label: Skills — AI and Data Science Demand
+  description: 'Evidence of growing demand for AI, machine learning, data science, and analytics skills across the downstream
+    space sector — both in technical roles and in applied domain positions.
+
+    '
+  driver: AI integration across EO, GNSS, and satellite communications value chains
+  trend: Rapid growth in demand for AI and data science skills in the space sector
+  sector_impact: AI skills scarcity as a bottleneck; premium salaries for AI engineers
+  occupation_impact: Data scientists, ML engineers, AI specialists in EO and GNSS companies
+  skills_implications: Python, TensorFlow/PyTorch, MLOps, data pipelines, statistical modelling
+  keywords:
+  - data science skills space
+  - machine learning skills
+  - AI skills demand
+  - Python programming space
+  - data analytics space sector
+  - deep learning skills
+  - statistical modelling
+  - data engineering skills
+  - big data satellite
+  - AI competence space
+  - ML engineering skills
+  - MLOps skills
+  - data literacy
+  - programming skills space
+  - analytics competence EO
+  - datawetenschap vaardigheden
+  - machine learning vaardigheden ruimtevaart
+  - compétences science des données espace
+  - compétences intelligence artificielle spatial
+  queries:
+  - growing demand for AI data science machine learning skills in space sector
+  - Python programming analytics skills for satellite and EO applications
+  - data science competencies shortage space sector workforce
+- label: Skills — Cloud and DevOps Competencies
+  description: 'Evidence of growing demand for cloud computing, DevOps, infrastructure-as-code, and platform engineering skills
+    as the space sector migrates to cloud-native architectures.
+
+    '
+  driver: Migration of EO and satellite data processing to cloud platforms
+  trend: Cloud and DevOps skills becoming standard requirements in the space sector
+  sector_impact: Cloud literacy as baseline expectation; demand for platform engineers
+  occupation_impact: Cloud architects, DevOps engineers, platform engineers in EO companies
+  skills_implications: AWS/Azure/GCP, Kubernetes, Docker, CI/CD, Terraform, cloud security
+  keywords:
+  - cloud skills space
+  - DevOps space sector
+  - cloud computing competence
+  - infrastructure as code
+  - cloud architecture skills
+  - Kubernetes skills
+  - Docker skills
+  - cloud platform engineering
+  - cloud migration space
+  - serverless skills
+  - cloud security skills
+  - platform engineering
+  - CI/CD pipeline skills
+  - cloud native skills
+  - AWS Azure GCP space
+  - cloudvaardigheden ruimtesector
+  - DevOps ruimtevaart
+  - compétences cloud secteur spatial
+  - DevOps espace
+  queries:
+  - cloud computing DevOps platform engineering skills space sector
+  - Kubernetes Docker cloud-native skills demand EO satellite industry
+  - cloud migration skills training geospatial space
+- label: Skills — Cybersecurity and Resilience
+  description: 'Evidence of growing demand for cybersecurity skills in the space sector, driven by increasing digitalisation
+    of satellite systems, growing threat landscape, and regulatory requirements for space asset protection.
+
+    '
+  driver: Increasing cyber threats to space infrastructure and digital service delivery
+  trend: Cybersecurity becoming a core competency requirement across the space value chain
+  sector_impact: Security-by-design requirements; regulatory compliance burden; specialist shortage
+  occupation_impact: Space cybersecurity engineers, secure software developers, red team specialists
+  skills_implications: Cybersecurity, secure coding, cryptography, network security, ethical hacking
+  keywords:
+  - cybersecurity space
+  - space cyber threats
+  - satellite security
+  - cyber resilience space
+  - cybersecurity skills demand
+  - secure satellite communications
+  - space asset protection
+  - cyber attack satellite
+  - space infrastructure security
+  - encryption space
+  - cybersecurity workforce space
+  - cyber threat space sector
+  - security-by-design space
+  - space system vulnerability
+  - cyberbeveiliging ruimtesector
+  - satellietbeveiliging
+  - cybersécurité espace
+  - sécurité satellite
+  - Cybersicherheit Raumfahrt
+  queries:
+  - cybersecurity skills demand growing space satellite sector
+  - cyber threats to space infrastructure satellite security resilience
+  - secure satellite systems cybersecurity workforce skills
+- label: Skills — Systems Engineering and Integration
+  description: 'Evidence of sustained and growing demand for systems engineering skills — including model-based systems engineering
+    (MBSE), mission design, verification and validation — as space systems grow in complexity.
+
+    '
+  driver: Increasing complexity of satellite constellations and multi-domain systems
+  trend: Growing demand for systems engineering expertise across the space value chain
+  sector_impact: Systems engineers as scarce bottleneck resource in satellite projects
+  occupation_impact: Systems architects, MBSE specialists, mission design engineers
+  skills_implications: MBSE, SysML, DOORS, verification and validation, risk management
+  keywords:
+  - systems engineering space
+  - model-based systems engineering
+  - MBSE
+  - mission design skills
+  - satellite systems integration
+  - verification validation space
+  - space systems architect
+  - system of systems
+  - complex space systems
+  - engineering management space
+  - mission analysis skills
+  - spacecraft design
+  - systems thinking space
+  - integration testing satellite
+  - systeemsysteemengineering ruimtevaart
+  - missieontwerp vaardigheden
+  - ingénierie systèmes espace
+  - conception de mission satellite
+  queries:
+  - systems engineering MBSE mission design skills space sector
+  - growing demand for systems engineers in satellite and space industry
+  - model-based systems engineering skills shortage aerospace
+- label: Education — Micro-credentials and Flexible Learning
+  description: 'Evidence of growth in short-cycle credentials, micro-certifications, online courses, and modular learning
+    pathways as alternatives or complements to traditional degrees for space sector professionals.
+
+    '
+  driver: Pace of technological change outstripping traditional education update cycles
+  trend: Rise of micro-credentials and flexible upskilling pathways for the space workforce
+  sector_impact: New training providers; shorter time-to-competence; continuous learning culture
+  occupation_impact: All roles — particularly mid-career professionals needing reskilling
+  skills_implications: Self-directed learning, digital literacy, portfolio-based credentialing
+  keywords:
+  - micro-credentials
+  - short courses space
+  - online training space
+  - MOOC space
+  - professional certification space
+  - modular learning
+  - digital badges
+  - stackable credentials
+  - continuous learning space
+  - upskilling space professionals
+  - nanodegree
+  - bootcamp space
+  - online space training
+  - flexible learning pathways
+  - competence-based learning
+  - microcredentials ruimtevaart
+  - korte cursus ruimtesector
+  - online training ruimtevaart
+  - micro-certifications espace
+  - formation courte spatiale
+  - apprentissage flexible espace
+  queries:
+  - micro-credentials short courses online training for space sector professionals
+  - flexible upskilling reskilling pathways satellite EO workforce
+  - MOOCs professional certifications competence-based learning space
+  - modular learning credentials for mid-career space professionals
+- label: Education — Industry-Academia Collaboration
+  description: 'Evidence of growing partnerships between universities, research institutions, and space industry for curriculum
+    development, applied research, internships, and co-designed training programmes.
+
+    '
+  driver: Mismatch between academic curricula and industry skill requirements
+  trend: Deepening industry-academia partnerships to align training with space sector needs
+  sector_impact: Better-prepared graduates; applied research commercialisation
+  occupation_impact: Graduate roles better matched to industry needs; researcher-practitioner hybrids
+  skills_implications: Applied research, industry problem-solving, collaborative project skills
+  keywords:
+  - industry academia collaboration space
+  - university space partnership
+  - curriculum development space
+  - space education programme
+  - internship space industry
+  - co-designed training space
+  - applied research space
+  - dual education space
+  - work-based learning space
+  - knowledge transfer space
+  - university space cooperation
+  - space research training
+  - graduate space programme
+  - space competence centre
+  - higher education space
+  - industrie academie samenwerking ruimtevaart
+  - universiteit ruimtesector samenwerking
+  - partenariat industrie université espace
+  - formation académique spatiale
+  - Industrie-Hochschule-Kooperation Raumfahrt
+  queries:
+  - industry academia collaboration curriculum development for space sector
+  - university space industry partnership co-designed training programme
+  - work-based learning internship graduate programmes space
+  - knowledge transfer research commercialisation space education
+- label: Education — Lifelong Learning and Reskilling
+  description: 'Evidence of growing recognition that initial education is insufficient and that space sector professionals
+    require ongoing reskilling throughout their careers — supported by employers, policy, or individual initiative.
+
+    '
+  driver: Rapid technological change making skills obsolete faster than ever
+  trend: Shift towards lifelong learning cultures and employer-sponsored reskilling in the space sector
+  sector_impact: Employer investment in learning and development; learning as retention tool
+  occupation_impact: All professionals — especially those in traditional engineering roles
+  skills_implications: Learning agility, self-management, adaptability, digital upskilling
+  keywords:
+  - lifelong learning space
+  - reskilling space sector
+  - upskilling workforce space
+  - continuous professional development space
+  - CPD space
+  - learning and development space industry
+  - employer training space
+  - workforce reskilling satellite
+  - retraining space professionals
+  - skill renewal space
+  - learning culture space
+  - adult learning space
+  - leven lang leren ruimtesector
+  - omscholing ruimtevaart
+  - bijscholing ruimtesector
+  - formation continue espace
+  - reconversion professionnelle spatiale
+  - lebenslanges Lernen Raumfahrt
+  - Weiterbildung Raumfahrt
+  queries:
+  - lifelong learning reskilling upskilling space sector workforce
+  - continuous professional development employer training space industry
+  - reskilling mid-career professionals space technology
+  - learning culture adult education space sector
+- label: Policy — Strategic Autonomy and Space Sovereignty
+  description: 'Evidence of growing emphasis on European strategic autonomy in space — including independent access to space,
+    sovereign infrastructure, and reducing dependence on non-EU providers for critical space services.
+
+    '
+  driver: Geopolitical tensions, supply chain dependencies, and US/China competition
+  trend: Growing political and industrial commitment to European strategic autonomy in space
+  sector_impact: Increased public funding; preference for EU-sourced space services
+  occupation_impact: Policy analysts, procurement specialists, sovereign tech developers
+  skills_implications: Policy analysis, technology governance, EU procurement, strategic foresight
+  keywords:
+  - strategic autonomy space
+  - European space sovereignty
+  - independent access to space
+  - space strategic independence
+  - EU space policy
+  - European space programme
+  - space defence
+  - dual use space
+  - space geopolitics
+  - sovereign launch capability
+  - European launcher
+  - Ariane space policy
+  - space industrial policy
+  - space supply chain security
+  - critical space infrastructure
+  - strategische autonomie ruimtevaart
+  - Europese ruimtesouvereiniteit
+  - autonomie stratégique espace
+  - souveraineté spatiale européenne
+  - strategische Autonomie Raumfahrt
+  - europäische Weltraumsouveränität
+  queries:
+  - European strategic autonomy sovereign space infrastructure policy
+  - EU independent access to space geopolitical competition
+  - space industrial policy sovereignty dual use
+  - critical space infrastructure European launch capability
+- label: Policy — Space Sustainability and Debris
+  description: 'Evidence of growing regulatory and policy attention to orbital sustainability, space debris mitigation, responsible
+    use of orbit, and long-term preservation of the space environment.
+
+    '
+  driver: Rapid growth in satellite numbers and increasing collision risk
+  trend: Emergence of space sustainability as a mainstream regulatory and commercial concern
+  sector_impact: New compliance requirements; market for debris removal; insurance implications
+  occupation_impact: Space sustainability specialists, regulatory affairs, orbital analysts
+  skills_implications: Orbital mechanics, space law, sustainability standards, risk assessment
+  keywords:
+  - space debris
+  - orbital sustainability
+  - space traffic management
+  - satellite collision risk
+  - debris mitigation
+  - space environment protection
+  - responsible use of orbit
+  - active debris removal
+  - space situational awareness
+  - SSA SST
+  - orbital congestion
+  - net zero space
+  - sustainable space
+  - end of life satellite
+  - space sustainability standards
+  - Kessler syndrome
+  - ruimtepuin
+  - orbitale duurzaamheid
+  - ruimteverkeersbeheer
+  - débris spatiaux
+  - durabilité orbitale
+  - gestion du trafic spatial
+  queries:
+  - space debris orbital sustainability regulation policy
+  - space traffic management collision risk mitigation
+  - responsible use of orbit sustainable space standards
+  - active debris removal space sustainability compliance
+- label: Policy — Secure Connectivity and SATCOM
+  description: 'Evidence of policy and market trends around satellite communications, secure connectivity, broadband from
+    space, and integration of SATCOM into terrestrial networks.
+
+    '
+  driver: Growing demand for global connectivity and strategic need for secure communications
+  trend: SATCOM becoming critical connectivity infrastructure, driving policy and investment
+  sector_impact: New regulatory frameworks; competition between GEO and LEO operators; 5G/6G integration
+  occupation_impact: SATCOM engineers, spectrum regulators, network architects
+  skills_implications: Telecommunications, spectrum management, network engineering, encryption
+  keywords:
+  - satellite broadband
+  - SATCOM
+  - satellite communications policy
+  - secure connectivity space
+  - LEO broadband constellation
+  - GEO communications satellite
+  - OneWeb Starlink
+  - satellite internet
+  - satellite 5G
+  - satellite 6G integration
+  - spectrum management
+  - satellite communications regulation
+  - IRIS2 Europe
+  - secure government SATCOM
+  - hybrid satellite terrestrial network
+  - satellietbreedband
+  - satellietcommunicatie beleid
+  - connectivité par satellite
+  - communications satellitaires sécurisées
+  queries:
+  - satellite broadband connectivity SATCOM policy regulation
+  - LEO broadband constellations Starlink OneWeb IRIS2 Europe
+  - secure satellite communications government 5G 6G integration
+  - spectrum management satellite communications regulatory framework
+- label: Policy — Space Data Governance and Open Data
+  description: 'Evidence of policy trends around data governance, open data mandates, data sharing frameworks, and the legal/regulatory
+    environment for commercial use of space-derived data.
+
+    '
+  driver: Copernicus open data success and growing commercial value of satellite data
+  trend: Expanding open data frameworks and evolving data governance for space-derived information
+  sector_impact: Levelling the playing field; new data economy rules; privacy and liability issues
+  occupation_impact: Data governance experts, legal/compliance roles, policy analysts
+  skills_implications: Data governance, EU data law, GDPR, intellectual property, open data standards
+  keywords:
+  - open data space
+  - Copernicus open data
+  - satellite data governance
+  - space data policy
+  - data sharing satellite
+  - commercial data licensing
+  - EO data access
+  - satellite data regulation
+  - open geospatial data
+  - data sovereignty space
+  - EU data space
+  - space data economy
+  - satellite data marketplace regulation
+  - data commons space
+  - GAIA-X space
+  - open data ruimtevaart
+  - ruimtedatagovernance
+  - satellietdataregulering
+  - données ouvertes espace
+  - gouvernance données spatiales
+  queries:
+  - open data policy governance satellite EO data sharing frameworks
+  - Copernicus open data commercial licensing regulation
+  - EU data space governance satellite data economy
+  - data sovereignty regulation geospatial satellite
+thresholds:
+  valid_match: 0.5
+  weak_match: 0.35
+eo_relevance:
+  min_score: 0.3
+  context_window: 2
+  sentences:
+  - The downstream space market is experiencing rapid commercial growth driven by private investment
+  - New business models are emerging in the satellite data and analytics sector
+  - Space-derived data is becoming embedded in mainstream sectors such as agriculture, insurance, and finance
+  - Commercial operators are entering markets previously dominated by government agencies
+  - Private investment in space start-ups reached record levels
+  - Artificial intelligence is transforming how satellite data is processed and interpreted
+  - Machine learning is being applied across the Earth Observation value chain
+  - Cloud-native processing is replacing desktop-based geospatial workflows
+  - Small satellite constellations are proliferating and increasing data revisit rates
+  - Software-defined payloads are enabling more flexible and reprogrammable satellite missions
+  - Quantum sensing technologies are being developed as alternatives to GNSS
+  - The space sector is facing a growing shortage of skilled technical professionals
+  - New interdisciplinary professional profiles are emerging that combine space technology with domain expertise
+  - Competition for digital talent is intensifying between space companies and other technology sectors
+  - Diversity and inclusion are becoming priorities in space sector workforce development
+  - Demand for AI and data science skills in the space sector is growing rapidly
+  - Cloud computing and DevOps skills are becoming standard requirements for satellite data professionals
+  - Cybersecurity is increasingly recognised as a core competency for the space workforce
+  - Systems engineering expertise is in high demand as space systems grow in complexity
+  - Micro-credentials and short courses are growing in importance for space sector training
+  - Industry and academia are collaborating more closely to develop space-relevant curricula
+  - Lifelong learning and reskilling are becoming essential for professionals in the space sector
+  - Competence-based learning is replacing traditional qualification frameworks in space training
+  - European strategic autonomy in space is increasingly driving policy and investment decisions
+  - Space sustainability and debris mitigation have become mainstream regulatory concerns
+  - Satellite communications are emerging as critical connectivity infrastructure
+  - Open data policies and data governance frameworks are shaping the space data economy
+  - De commercialisering van de ruimtesector leidt tot nieuwe zakelijke modellen en marktspelers
+  - Kunstmatige intelligentie wordt steeds meer toegepast in de verwerking van satellietdata
+  - Er is een groeiend tekort aan gekwalificeerde professionals in de ruimtesector
+  - Microcredentials en online opleidingen winnen aan belang voor professionals in de ruimtesector
+  - Strategische autonomie in de ruimtevaart wordt een prioriteit van het Europese beleid
+  - Le secteur spatial commercial connaît une croissance rapide portée par l'investissement privé
+  - L'intelligence artificielle transforme le traitement des données d'observation de la Terre
+  - Le manque de professionnels qualifiés dans le secteur spatial s'accentue
+  - Les micro-certifications et formations courtes gagnent en importance pour le secteur spatial
+  - Der kommerzielle Raumfahrtsektor wächst durch private Investitionen und neue Marktteilnehmer
+  - Künstliche Intelligenz verändert die Verarbeitung von Satellitendaten grundlegend
+  - Der Fachkräftemangel im Raumfahrtsektor wird zunehmend als strategisches Problem anerkannt
+  - Il mercato spaziale commerciale sta crescendo rapidamente grazie agli investimenti privati
+  - L'intelligenza artificiale sta trasformando l'analisi dei dati di osservazione della Terra
+  - La carenza di professionisti qualificati nel settore spaziale è in aumento
+  - Le micro-credenziali e la formazione continua stanno diventando essenziali nel settore spaziale
+  - O mercado espacial comercial está crescendo rapidamente impulsionado por investimento privado
+  - A inteligência artificial está transformando o processamento de dados de observação da Terra
+  - A escassez de profissionais qualificados no setor espacial está aumentando
+  - Η εμπορευματοποίηση του διαστημικού τομέα οδηγεί σε νέα επιχειρηματικά μοντέλα
+  - Η τεχνητή νοημοσύνη μεταμορφώνει την επεξεργασία δορυφορικών δεδομένων
+  - Υπάρχει αυξανόμενη έλλειψη εξειδικευμένων επαγγελματιών στον διαστημικό τομέα
+lifecycle:
+  stages:
+  - label: Signal
+    description: Early mention or weak signal — trend is noted but not analysed
+    keywords:
+    - emerging
+    - early signs
+    - beginning to
+    - nascent
+    - first indications
+    - initial signs
+  - label: Recognition
+    description: Trend is explicitly recognised as significant by the document
+    keywords:
+    - recognises
+    - acknowledges
+    - notes that
+    - highlights
+    - identifies as important
+    - significant trend
+  - label: Analysis
+    description: Trend is analysed with data, evidence, or structured argument
+    keywords:
+    - data shows
+    - analysis indicates
+    - evidence suggests
+    - according to
+    - research shows
+    - study found
+  - label: Strategic Response
+    description: A strategic or policy response to the trend is proposed or underway
+    keywords:
+    - strategy to
+    - policy response
+    - strategic plan
+    - framework to address
+    - initiative to respond
+    - programme to tackle
+  - label: Investment
+    description: Concrete investment or resource allocation in response to the trend
+    keywords:
+    - invest
+    - fund
+    - budget allocated
+    - resources committed
+    - financial support
+    - grant
+  - label: Implementation
+    description: Active implementation of measures responding to the trend
+    keywords:
+    - implementing
+    - rolling out
+    - deployed
+    - in operation
+    - launched
+    - established
+  - label: Monitoring
+    description: Trend is being tracked and measured over time
+    keywords:
+    - monitor
+    - track
+    - measure progress
+    - indicators
+    - KPI
+    - benchmark
+  - label: Mainstreaming
+    description: Response to the trend has become standard practice or policy
+    keywords:
+    - standard practice
+    - mainstream
+    - widely adopted
+    - fully integrated
+    - embedded in
+    - routine
+search:
+  use_sbert: false
+  use_cross_encoder: false
+  use_openai: true
+  sbert_model: paraphrase-multilingual-MiniLM-L12-v2
+  cross_encoder_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+  top_k_sentences: 5
+  chunk_size: 400
+  chunk_overlap: 80
+  context_window: 2
+esco:
+  enabled: true
+  min_score: 60
+  language: en
+  blacklist:
+  - casino
+  - gambling
+  - operate sewing machine
+  - tend bar
+  - manage livestock
+  - lay bricks
+  - perform horse riding
+signal_classification:
+  enabled: true
+  method: regex+llm
+  llm_model: gpt-4o-mini
+  batch_size: 40
+  signal_weights:
+    DIRECTION_SIGNAL: 1.0
+    DRIVER: 0.9
+    SECTOR_IMPACT: 0.85
+    OCCUPATION_IMPACT: 0.85
+    SKILLS_IMPLICATION: 0.8
+    STATISTIC: 0.4
+    BACKGROUND: 0.1
+    UNCLASSIFIED: 0.5
+  patterns:
+    DIRECTION_SIGNAL:
+    - (is|are)\s+(rapidly|quickly|steadily|significantly|increasingly)\s+\w+ing
+    - (growth|expansion|proliferation|acceleration|emergence)\s+(of|in|across)\s+\w
+    - (shift|transition|move|migration)\s+(toward|to|from|away\s+from)
+    - (rising|declining|falling|growing|shrinking)\s+(number|share|proportion|rate|volume|demand|adoption)
+    - trend(s)?\s+(toward|towards|in|of|show)
+    - market\s+(is|has been|continues\s+to)\s+(grow|expand|consolidat|matur)
+    - (becoming|become)\s+(mainstream|standard|widespread|ubiquitous|critical|essential)
+    - (uptake|adoption|deployment|integration)\s+(of|is|has|are)\s+(increas|grow|accelerat|rapid)
+    - (rapid|exponential|significant|substantial)\s+(growth|increase|rise|expansion)
+    - (surge|boom|explosion)\s+(in|of)
+    - (proliferat|multiply|multiply)\w*\s+(satellite|constellation|service|provider|operator)
+    - (commercialis|commercializ)\w+\s+(of|in)\s+(space|earth\s+observation|EO|downstream|satellite)
+    - (democratis|democratiz)\w+\s+(of|in|access)
+    - cloud.native\s+(processing|platform|architecture)
+    - constellation(s)?\s+(proliferat|expand|grow|deploy|launch)
+    - (new|novel|emerging)\s+(business\s+model|service\s+model|platform|ecosystem)
+    - (open\s+data|open.source)\s+(policies?|frameworks?|movement|trend|ecosystem)
+    - (LEO|MEO|GEO)\s+constellation\s+(grow|expand|proliferat)
+    - software.defined\s+(satellite|payload|radio|mission)
+    - (quantum|next.generation)\s+(sensing|positioning|communication)\s+(is|are|becoming)
+    - (autonomous|automated)\s+(analysis|processing|monitoring|detection)\s+(is|are|becoming|replac)
+    - (real.time|near.real.time)\s+(data|monitoring|analysis)\s+(is|are|becoming|demand|grow)
+    - (multi.source|multi.modal|heterogeneous)\s+(data\s+fusion|integration|analytics)
+    - (expected|projected|forecast|anticipated|set)\s+to\s+(grow|reach|double|triple|expand|increase)
+    - by\s+20\d{2}.{0,20}(will|expected|projected|forecast)
+    - (CAGR|compound\s+annual\s+growth)\s+of\s+\d
+    - market\s+(size|value|revenue).{0,30}(billion|million|trillion)
+    - (growing|widening|deepening|narrowing)\s+(gap|divide|shortage|disparity)
+    - (early.stage|nascent|emerging|maturing|mature|established)\s+(market|technology|sector|ecosystem)
+    - (moving|shifting)\s+from\s+(niche|experimental|pilot)\s+to\s+(mainstream|operational|commercial)
+    DRIVER:
+    - driven\s+by\s+(the\s+)?(rapid|growing|increasing|falling|rising)
+    - (enabled|facilitated|accelerated|underpinned|catalysed|catalyzed)\s+by
+    - (as\s+a\s+result\s+of|in\s+response\s+to|in\s+reaction\s+to|thanks\s+to)
+    - (following|after|in\s+the\s+wake\s+of)\s+(the\s+)?(success|emergence|launch|rise)
+    - (propelled|pushed|pulled|boosted|spurred|stimulated)\s+by
+    - (regulatory|policy|legislation|mandate|directive)\s+(push|pressure|requirement|incentive|driver)
+    - (geopolitic|geostrategic)\s+(tension|competition|pressure|factor|consideration)
+    - (strategic\s+autonomy|sovereignty|resilience).{0,30}(driver|motivation|rationale|imperative)
+    - (fall|declin|decreas)\w+\s+(launch\s+cost|cost\s+per\s+launch|cost\s+of\s+access)
+    - (miniaturis|miniaturiz)\w+\s+(of\s+)?(satellite|sensor|component|payload)
+    - (surplus|excess|overcapacity)\s+(satellite|bandwidth|capacity)
+    - (volum|flood|explosion)\s+(of\s+)?(satellite\s+data|EO\s+data|remote\s+sensing\s+data)
+    - (Copernicus|Sentinel|GMES|INSPIRE)\s+(open\s+data|programme|success|policy)
+    - (open\s+data)\s+(policy|initiative|mandate|framework|success)
+    - (API|cloud|platform)\s+(economy|ecosystem|marketplace)\s+(enabl|driv|foster)
+    - (deep\s+learning|neural\s+network|large\s+language\s+model|foundation\s+model).{0,30}(matur|advanc|breakthrough)
+    - (GNSS|GPS|Galileo|navigation)\s+(jamming|spoofing|vulnerability|degradation|threat)
+    - (cyber|digital)\s+(threat|attack|vulnerability|risk).{0,30}(space|satellite|ground)
+    - (5G|6G|broadband|connectivity)\s+(demand|rollout|deployment)\s+(driv|fuel|push)
+    - (NewSpace|new\s+space)\s+(movement|revolution|paradigm|era)
+    - (private\s+investment|venture\s+capital|VC)\s+(in|into)\s+(space|EO|satellite)
+    - (competition|competitive\s+pressure)\s+from\s+(US|China|commercial|private)
+    - mismatch\s+between\s+(academic|university|education)\s+(curriculum|curricula|training)
+    - pace\s+of\s+(technological|digital)\s+change
+    - increasing\s+(complexity|interconnected|interdependen)\w+\s+of\s+\w
+    - (supply\s+chain|value\s+chain)\s+(disruption|vulnerabilit|dependenc)
+    SECTOR_IMPACT:
+    - (new|emerging|niche|growing)\s+market\s+(segment|opportunit|niche|ecosystem|for)
+    - market\s+(consolidat|fragmentat|concentrat|disrupt|transform)
+    - (competitive|competition)\s+(landscape|dynamic|pressure|advantage)\s+(chang|shift|evolv|intensif)
+    - (incumbents?|established\s+player|traditional\s+operator)\s+(face|under\s+pressure|challeng|threat)
+    - (SaaS|PaaS|DaaS|data.as.a.service|platform.as.a.service)\s+(model|offer|delivery)
+    - recurring\s+revenue\s+(model|stream|opportunit)
+    - (price\s+pressure|margin\s+compress|commoditisation|commoditization)
+    - (commerciali|privatisation|privatization)\s+(of\s+)?(public|government|state).{0,20}(service|infrastructure|function)
+    - (democratis|democratiz)\w+\s+(access|market|EO|space|data)
+    - (downstream|upstream|midstream)\s+(space|EO|satellite).{0,20}(sector|market|industry|service)
+    - (EO|earth\s+observation|remote\s+sensing)\s+(market|sector|industry|service).{0,30}(grow|expand|transform|consolidat|disrupt)
+    - (geospatial|GNSS|positioning)\s+(market|sector|industry|service).{0,20}(grow|expand|opportunit|impact)
+    - (satellite\s+data|imagery|analytics)\s+(market|sector|product)\s+(grow|consolidat|commoditis)
+    - (value.added\s+service|application|use\s+case)\s+(develop|commerciali|proliferat|expand)
+    - (data\s+economy|information\s+economy)\s+(emerg|grow|enabl|create)
+    - (platform|ecosystem|marketplace)\s+(consolidat|emerg|lead|dominat)
+    - (public.private\s+partnership|PPP)\s+(enabl|fund|accelerat|deliver)
+    - (government|public\s+sector|agency)\s+(procurement|contract|funding|investment)\s+(space|EO|satellite)
+    - (insurance|risk\s+assessment|underwriting).{0,30}(EO|satellite|space|remote\s+sensing)
+    - (agriculture|precision\s+farming|agritech).{0,30}(EO|satellite|monitoring|data)
+    - (urban|smart\s+city|infrastructure)\s+(monitoring|planning|management).{0,30}(EO|satellite|geospatial)
+    - (maritime|shipping|port|harbor).{0,30}(monitoring|traffic|safety).{0,30}(EO|satellite|AIS)
+    - (defence|defense|security|border).{0,30}(EO|satellite|surveillance|reconnaissance)
+    - (regulatory\s+burden|compliance\s+cost|licensing\s+requirement)\s+(increas|grow|add)
+    - (space\s+debris|orbital\s+congestion|collision\s+risk).{0,30}(market|insurance|regulat|concern)
+    - (spectrum\s+management|spectrum\s+congestion|frequency\s+allocation).{0,20}(challeng|constrain|concern)
+    OCCUPATION_IMPACT:
+    - (demand\s+for|need\s+for|shortage\s+of|competition\s+for)\s+(skilled|experienced|qualified)\s+\w
+    - (growing|rising|increasing|surge\s+in)\s+demand\s+for\s+\w+(s)?\s+(engineer|scientist|analyst|developer|architect|specialist|expert)
+    - (new|emerging|hybrid)\s+(role|job|profession|occupation|position|profile)\s+(of|for|in|requiring)
+    - (job\s+title|occupational\s+profile|role\s+definition)\s+(chang|evolv|emerg|redefined)
+    - (traditional|manual|conventional)\s+\w+(s)?\s+(replac|automat|displace|reduc|declin)
+    - (workforce|talent|human\s+capital)\s+(restructur|transform|upgrad|redeploy)
+    - (cross.disciplinary|interdisciplinary|multi.disciplinary)\s+(team|role|profile|professional)
+    - (specialist|niche)\s+(role|skill\s+set|expertise)\s+(in\s+demand|scarce|shortage|critical)
+    - (geospatial|EO|earth\s+observation|remote\s+sensing)\s+(data\s+scientist|analyst|engineer|specialist|expert)
+    - (satellite|space)\s+(engineer|system\s+architect|mission\s+designer|operator|controller)
+    - (ML|machine\s+learning|AI|deep\s+learning)\s+(engineer|specialist|researcher)\s+(space|EO|geospatial)
+    - (cloud|DevOps|platform|MLOps)\s+engineer\s+(space|EO|geospatial|satellite)
+    - (space\s+policy|space\s+law|space\s+governance)\s+(analyst|expert|specialist|advisor)
+    - (cybersecurity|information\s+security)\s+(engineer|analyst|specialist).{0,20}(space|satellite)
+    - (systems?\s+engineer|MBSE\s+specialist|systems?\s+architect)\s+(space|satellite|mission)
+    - (PNT|navigation|GNSS)\s+(engineer|specialist|expert)
+    - (space\s+sustainability|debris\s+removal|orbital)\s+(specialist|analyst|engineer)
+    - (data\s+governance|legal|compliance)\s+(expert|officer|analyst).{0,20}(space|EO|data)
+    - (industry.academia|researcher.practitioner)\s+(hybrid|bridge|interface|boundary)
+    - (diversity|inclusion|equity)\s+(officer|champion|lead|role)\s+(space|sector|industry)
+    - (high\s+salary|salary\s+premium|compensation\s+package)\s+(attract|retain|compet)
+    - (talent\s+war|war\s+for\s+talent|talent\s+competition)\s+(space|tech|sector)
+    - (attrition|turnover|retention)\s+(challenge|problem|issue)\s+(space|sector|engineer)
+    - (headhunting|poaching|talent\s+drain)\s+(from|to|by)\s+(space|tech|defence)
+    SKILLS_IMPLICATION:
+    - (skill|competenc|capability|proficienc)\w+\s+(required|needed|demand|expected|sought|gap|shortage)
+    - (lack|absence|deficit|dearth)\s+(of\s+)?(skill|competenc|expertise|knowledge)
+    - (train|retrain|upskill|reskill|cross.skill)\w+\s+(programme|program|initiative|pathway|need)
+    - (curriculum|curricula|course|module|syllabus).{0,30}(updat|develop|design|reform|adapt)
+    - (new\s+skill|emerging\s+skill|future\s+skill)\s+(set|requirement|demand|for)
+    - (digital\s+literacy|data\s+literacy|AI\s+literacy|geospatial\s+literacy)\s+(need|develop|build|improv)
+    - (lifelong\s+learning|continuous\s+learning|learning\s+agility)\s+(cultur|need|mindset|require)
+    - (micro.credential|badge|short\s+course|bootcamp)\s+(emerg|grow|offer|develop|provid)
+    - (industry.academia|university.industry)\s+(partnership|collaboration|gap|mismatch|alignment)
+    - ESCO\s+(framework|skill|occupation|taxonomy)
+    - (Python|R\s+programming|Julia|MATLAB)\s+(for\s+)?(EO|geospatial|remote\s+sensing|satellite|space)
+    - (TensorFlow|PyTorch|scikit.learn|Keras)\s+(geospatial|EO|satellite|remote\s+sensing)
+    - (Google\s+Earth\s+Engine|GEE|Sentinel\s+Hub|SNAP)\s+(skill|proficienc|training|use)
+    - (QGIS|ArcGIS|GDAL|PostGIS|GeoPandas)\s+(skill|competenc|training|proficienc)
+    - (AWS|Azure|GCP|Google\s+Cloud).{0,20}(geospatial|EO|satellite|space)
+    - (Kubernetes|Docker|Terraform|CI.CD).{0,20}(space|EO|satellite|aerospace)
+    - (STAC|COG|Zarr|Dask|Xarray)\s+(skill|knowledge|competenc|training|familiarity)
+    - (MBSE|SysML|DOORS|Capella)\s+(skill|competenc|training|proficienc)
+    - (orbital\s+mechanics|astrodynamics)\s+(skill|knowledge|competenc|training)
+    - (spectrum\s+management|radio\s+frequency|RF)\s+(skill|competenc|training|expertise)
+    - (space\s+law|GDPR|data\s+governance|open\s+data\s+policy)\s+(knowledge|competenc|training|literacy)
+    - (cybersecurity|secure\s+coding|cryptography)\s+(skill|competenc|training|certif)
+    - (systems?\s+thinking|systems?\s+engineering)\s+(approach|skill|competenc|mindset)
+    - (cross.domain|interdisciplinary|transdisciplinary)\s+(skill|competenc|knowledge|literacy)
+    - (communication|stakeholder\s+engagement|science\s+communication)\s+(skill|competenc|training)
+    - (project\s+management|agile|scrum|PRINCE2)\s+(space|EO|satellite|aerospace)
+    - (signal\s+processing|DSP|digital\s+signal)\s+(skill|competenc|training|knowledge)
+    - (computer\s+vision|image\s+processing|object\s+detection)\s+(EO|satellite|remote\s+sensing|geospatial)
+    - (university|academic\s+institution|polytechnic)\s+(need|must|should)\s+(update|reform|redesign|adapt)
+    - (bootcamp|accelerator|incubator|training\s+provider)\s+(space|EO|geospatial|satellite)
+    - (apprenticeship|vocational|TVET)\s+(space|EO|geospatial|satellite|aerospace)
+    - (doctoral|PhD|postdoctoral|research\s+fellow)\s+(space|EO|satellite|geospatial)\s+(programme|training|position)
+    - (ESA|NASA|EUMETSAT|ECMWF)\s+(training|summer\s+school|academy|course)
+    STATISTIC:
+    - \d+(\.\d+)?\s*%\s*(growth|increase|decrease|decline|rise|drop|gain|change|CAGR|annually)
+    - (grow|grew|increas|decreas|fell|rose|drop)\w*\s+(by\s+)?\d+(\.\d+)?\s*%
+    - CAGR\s+of\s+\d
+    - market\s+(size|value|revenue).{0,20}(USD|EUR|€|\$).{0,10}\d
+    - \d+[\.,]\d+\s*(billion|million|trillion)\s*(USD|EUR|€|\$|euro|dollar)
+    - (€|\$|USD|EUR)\s?\d[\d\.,]+\s*(billion|million|trillion|thousand|bn|m\b)
+    - \d+\s+(satellite|constellation|launch|mission|sensor|payload|operator|company|provider)
+    - \d+\s+(job|position|role|professional|engineer|specialist|graduate|student)\s+(creat|lost|requir|employ|train)
+    - (by|in|for)\s+20\d{2}.{0,30}(\d[\d,\.]+\s*(billion|million|thousand|USD|EUR|\$|€))
+    - (according\s+to|based\s+on|as\s+reported\s+by|per)\s+(ESA|EC|EU|Euroconsult|SpaceX|SpaceTEC|Statista|Mordor|Grand\s+View|McKinsey|Deloitte|PwC|ESOA|SIA|NSR)
+    - (study|report|analysis|survey|forecast)\s+(find|found|show|reveal|estimate|project)\s+(that\s+)?\d
+    - (figure|number|count|total).{0,15}(reach|stand\s+at|amount\s+to|total)\s+\d
+    - (from|between)\s+20\d{2}\s+(to|and|until)\s+20\d{2}
+    - (year.on.year|YoY|quarterly|annual)\s+(growth|increase|change|decline)
+    - (doubled|tripled|quadrupled|halved)\s+(since|between|over\s+the\s+past)
+    BACKGROUND:
+    - (refers?\s+to|is\s+defined\s+as|can\s+be\s+defined|hereinafter\s+referred)
+    - (in\s+the\s+context\s+of|in\s+this\s+(report|document|paper|study|chapter|section))
+    - (as\s+mentioned\s+(above|below|earlier|previously|in\s+section)|see\s+section\s+\d)
+    - (overview|introduction|background|context|history)\s+(of|to|on)\s+\w
+    - (long.standing|well.established|traditional|conventional|classic)\s+(approach|method|practice|system|model)
+    - (briefly|typically|generally|broadly|widely)\s+(describ|outlin|explain|summar|discuss)
+    - (table\s+of\s+contents|list\s+of\s+(figure|table|abbreviation|acronym))
+    - (disclaimer|copyright|licence|license|rights\s+reserved|all\s+rights)
+    - (acknowledgement|acknowledgment|author|affiliation|institution|funding\s+source)
+    - (annex|appendix|annex\s+[A-Z]|appendix\s+[A-Z])\s*[:—]
+    - (doi:|ISBN|ISSN|arXiv|hal-|preprint)
+    - ^\s*(figure|fig\.|table|tab\.)\s*\d
+    - (it\s+is\s+(important|worth)\s+to\s+note|it\s+should\s+be\s+noted)
+    - (scope\s+of\s+this|objectives?\s+of\s+this|aim\s+of\s+this)\s+(report|study|paper|document|analysis)
+    - (further\s+research|more\s+work)\s+(is\s+)?(needed|required|warranted|recommended)
+evidence_clustering:
+  enabled: true
+  method: agglomerative
+  similarity_threshold: 0.72
+  min_cluster_size: 2
+  reuse_stage1_embeddings: true
+trend_synthesis:
+  enabled: true
+  llm_model: gpt-4o
+  max_evidence_per_theme: 8
+  key_evidence_count: 5
+  min_excerpts_for_synthesis: 3
+  min_docs_for_synthesis: 1
+  temperature: 0.2
+commitment:
+  enabled: false

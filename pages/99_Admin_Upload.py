@@ -74,8 +74,19 @@ st.divider()
 # TAB 1 — Manage (list + delete)
 # TAB 2 — Upload
 # ---------------------------------------------------------------------------
-tab_manage, tab_upload, tab_copy, tab_url = st.tabs(
-    ["🗑️ Manage Files", "⬆️ Upload Files", "📥 Copy from folder", "🌐 Fetch from URL"]
+st.info(
+    "This page manages **PDF documents only**. To change the taxonomy YAML, "
+    "use **2. Taxonomy** in the sidebar of the main page.",
+    icon="ℹ️",
+)
+
+tab_manage, tab_url, tab_copy, tab_upload = st.tabs(
+    [
+        "🗑️ Manage PDFs",
+        "🌐 Add PDFs from URL",
+        "📥 Copy PDFs between folders",
+        "⬆️ Upload PDFs from computer",
+    ]
 )
 
 # ===========================================================================

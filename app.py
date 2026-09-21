@@ -339,103 +339,59 @@ with st.sidebar:
     # ---- 2. Taxonomy -------------------------------------------------------
     st.divider()
     st.subheader("2. Taxonomy")
-    taxonomy_source = st.radio(
-        "Taxonomy source",
-        ["Built-in (default)", "Upload custom YAML", "Paste YAML", "Server file path"],
-        horizontal=False,
-        key="taxonomy_source",
-        help=(
-            "If the upload button does not open a file dialog in your browser, "
-            "use **Paste YAML** or **Server file path** instead — both avoid "
-            "the browser file picker entirely."
-        ),
+    # Any *.yaml in config/ or on the /data volume is selectable. No upload,
+    # no paste -- just pick a file. Drop new files into config/ (via git) or
+    # onto the volume (via the PDF File Manager's URL fetch).
+    _app_dir = Path(__file__).resolve().parent
+    _tax_files: list[Path] = []
+    for _d in (_app_dir / "config", Path("/data"), Path("/data/taxonomies")):
+        try:
+            if _d.is_dir():
+                _tax_files += [q for q in sorted(_d.glob("*.y*ml")) if q.is_file()]
+        except OSError:
+            pass
+    _tax_files = list(dict.fromkeys(_tax_files))
+
+    _BUILTIN = "Built-in (default)"
+    # label -> path, so selection never depends on list index arithmetic
+    _options: dict[str, Path | None] = {_BUILTIN: None}
+    for _q in _tax_files:
+        if _q.name == "taxonomy.yaml" and _q.parent == _app_dir / "config":
+            continue  # that IS the built-in
+        _options[f"{_q.name}  —  {_q.parent}"] = _q
+
+    _choice = st.selectbox(
+        "Taxonomy file",
+        list(_options.keys()),
+        key="taxonomy_choice",
+        help="Any YAML found in config/ or on the /data volume.",
     )
-    custom_taxonomy_file = None
-    pasted_taxonomy_bytes: bytes | None = None
 
-    if taxonomy_source == "Upload custom YAML":
-        custom_taxonomy_file = st.file_uploader(
-            "Upload taxonomy YAML",
-            type=["yaml", "yml"],
-            key="taxonomy_uploader",
-            help="Must follow the same schema as config/taxonomy.yaml",
-        )
-        st.caption(
-            "Click the compact **⬆ Upload** button above. If no file dialog "
-            "appears, switch to **Paste YAML** or **Server file path**."
-        )
+    taxonomy_bytes_sel: bytes | None = None
+    _sel = _options.get(_choice)
+    if _sel is not None:
+        try:
+            taxonomy_bytes_sel = _sel.read_bytes()
+            st.caption(f"✅ `{_sel.name}` ({len(taxonomy_bytes_sel):,} bytes)")
+        except OSError as _exc:
+            st.error(f"Cannot read `{_sel}`: {_exc}")
 
-    elif taxonomy_source == "Paste YAML":
-        _pasted = st.text_area(
-            "Paste taxonomy YAML",
-            height=180,
-            key="taxonomy_paste",
-            placeholder="themes:\n  - name: ...\n    keywords: [...]",
-            help="Copy the contents of your YAML file and paste it here.",
-        )
-        if _pasted.strip():
-            pasted_taxonomy_bytes = _pasted.encode("utf-8")
-            st.caption(f"✅ {len(pasted_taxonomy_bytes):,} bytes pasted.")
-        else:
-            st.caption("Paste YAML text to override the built-in taxonomy.")
-
-    elif taxonomy_source == "Server file path":
-        # Offer anything already sitting on the volume, plus a manual path box.
-        # Anchor to this file, not the process working directory -- a relative
-        # Path("config") silently finds nothing if the server is started from
-        # anywhere other than the repo root.
-        _app_dir = Path(__file__).resolve().parent
-        _search_dirs = [
-            Path("/data"),
-            Path("/data/taxonomies"),
-            Path("/data/pdfs"),
-            _app_dir / "config",
-        ]
-        _yaml_candidates: list[str] = []
-        _searched: list[str] = []
-        for _d in _search_dirs:
-            try:
-                if not _d.is_dir():
-                    continue
-                _found = [str(q) for q in sorted(_d.glob("*.y*ml")) if q.is_file()]
-                _yaml_candidates += _found
-                _searched.append(f"{_d} ({len(_found)})")
-            except OSError as _exc:
-                _searched.append(f"{_d} (unreadable: {_exc})")
-        _yaml_candidates = list(dict.fromkeys(_yaml_candidates))
-        st.caption("Searched: " + ", ".join(_searched or ["nothing readable"]))
-
-        _picked = ""
-        if _yaml_candidates:
-            _picked = st.selectbox(
-                "YAML files found on the server",
-                ["(enter a path manually)"] + _yaml_candidates,
-                key="taxonomy_server_pick",
-            )
-            if _picked == "(enter a path manually)":
-                _picked = ""
+    with st.expander("Use a file from another path"):
         _manual = st.text_input(
-            "Or an absolute path",
-            value="",
-            key="taxonomy_server_path",
+            "Absolute path to a YAML file",
+            key="taxonomy_manual_path",
             placeholder="/data/my_taxonomy.yaml",
         )
-        _path_str = _manual.strip() or _picked
-        if _path_str:
-            _yp = Path(_path_str)
-            if not _yp.is_file():
-                st.error(f"❌ Not found: `{_yp}`")
+        if _manual.strip():
+            _mp = Path(_manual.strip())
+            if not _mp.is_file():
+                st.error(f"Not found: `{_mp}`")
             else:
                 try:
-                    pasted_taxonomy_bytes = _yp.read_bytes()
-                    st.caption(f"✅ Loaded `{_yp.name}` ({len(pasted_taxonomy_bytes):,} bytes).")
+                    taxonomy_bytes_sel = _mp.read_bytes()
+                    st.caption(f"✅ Using `{_mp.name}` ({len(taxonomy_bytes_sel):,} bytes)")
                 except OSError as _exc:
-                    st.error(f"❌ Cannot read `{_yp}`: {_exc}")
-        else:
-            st.caption(
-                "Tip: upload the YAML to the volume via the **PDF File Manager** "
-                "page, or point at any path the server can read."
-            )
+                    st.error(f"Cannot read `{_mp}`: {_exc}")
 
     # ---- 3. Thresholds -----------------------------------------------------
     st.subheader("3. Thresholds")
@@ -491,10 +447,7 @@ with st.sidebar:
     # ---- Search mode badge -------------------------------------------------
     st.markdown("**Search mode**")
 
-    taxonomy_bytes = (
-        custom_taxonomy_file.read() if custom_taxonomy_file
-        else pasted_taxonomy_bytes
-    )
+    taxonomy_bytes = taxonomy_bytes_sel
     taxonomy = _load_taxonomy_cached(taxonomy_bytes)
 
     _scfg = taxonomy.get("search", {})
