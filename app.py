@@ -381,15 +381,29 @@ with st.sidebar:
 
     elif taxonomy_source == "Server file path":
         # Offer anything already sitting on the volume, plus a manual path box.
+        # Anchor to this file, not the process working directory -- a relative
+        # Path("config") silently finds nothing if the server is started from
+        # anywhere other than the repo root.
+        _app_dir = Path(__file__).resolve().parent
+        _search_dirs = [
+            Path("/data"),
+            Path("/data/taxonomies"),
+            Path("/data/pdfs"),
+            _app_dir / "config",
+        ]
         _yaml_candidates: list[str] = []
-        for _d in (Path("/data"), Path("/data/taxonomies"), Path("config")):
+        _searched: list[str] = []
+        for _d in _search_dirs:
             try:
-                _yaml_candidates += [
-                    str(q) for q in sorted(_d.glob("*.y*ml")) if q.is_file()
-                ]
-            except OSError:
-                pass
+                if not _d.is_dir():
+                    continue
+                _found = [str(q) for q in sorted(_d.glob("*.y*ml")) if q.is_file()]
+                _yaml_candidates += _found
+                _searched.append(f"{_d} ({len(_found)})")
+            except OSError as _exc:
+                _searched.append(f"{_d} (unreadable: {_exc})")
         _yaml_candidates = list(dict.fromkeys(_yaml_candidates))
+        st.caption("Searched: " + ", ".join(_searched or ["nothing readable"]))
 
         _picked = ""
         if _yaml_candidates:
