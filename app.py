@@ -52,6 +52,11 @@ from core.exporters import (
     to_markdown_report,
     results_to_dataframe,
 )
+import core.page_utils as _page_utils
+# Must be set before importing the page modules: their standalone blocks
+# read it at import time to avoid rendering twice (duplicate widget keys).
+_page_utils.RUNNING_INSIDE_APP_SHELL = True
+
 from pages.charts import render_charts
 from pages.results_table import render_results_table
 from pages.human_validation import render_human_validation

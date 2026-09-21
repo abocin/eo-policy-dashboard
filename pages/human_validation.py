@@ -169,7 +169,9 @@ def render_human_validation(results: List[SearchResult]):
 # ---------------------------------------------------------------------------
 # Standalone page execution (when accessed directly via sidebar URL)
 # ---------------------------------------------------------------------------
-if __name__ == "__main__" or True:
+from core.page_utils import is_standalone_page
+
+if is_standalone_page():
     from core.page_utils import get_results_for_page, no_results_message
     _results = get_results_for_page()
     if not _results:

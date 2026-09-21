@@ -39,8 +39,19 @@ PDF_FOLDER = _TARGETS[_choice]
 
 st.caption(f"Managing files in `{PDF_FOLDER}`")
 
-# Ensure folder exists
-PDF_FOLDER.mkdir(parents=True, exist_ok=True)
+# Ensure folder exists. If the volume is missing or not writable this must NOT
+# raise: an uncaught error here aborts the whole script, so the upload widget
+# below would never render and the page would look broken rather than explain
+# itself.
+try:
+    PDF_FOLDER.mkdir(parents=True, exist_ok=True)
+except OSError as _e:
+    st.error(
+        f"Cannot create or access `{PDF_FOLDER}`: {_e}\n\n"
+        "On Railway, check that a volume is mounted at `/data`. "
+        "You can still pick a different target folder above."
+    )
+    st.stop()
 
 # ---------------------------------------------------------------------------
 # Load file list (excluding macOS resource fork files)

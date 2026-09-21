@@ -16,6 +16,18 @@ import streamlit as st
 from core.cache_manager import load_results
 from core.search_engine import SearchResult
 
+# Set to True by app.py as soon as it starts importing page modules. The page
+# modules' standalone blocks check it so they do NOT render a second time when
+# imported by app.py (which renders them itself). Streamlit executes page files
+# with __name__ == "__main__", so the usual __main__ guard cannot tell the two
+# cases apart -- hence this explicit flag.
+RUNNING_INSIDE_APP_SHELL = False
+
+
+def is_standalone_page() -> bool:
+    """True when this page file is the script Streamlit is executing directly."""
+    return not RUNNING_INSIDE_APP_SHELL
+
 
 def _dict_to_result(d: Dict[str, Any]) -> SearchResult:
     """Reconstruct a SearchResult dataclass from a plain dict."""

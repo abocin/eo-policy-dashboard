@@ -635,7 +635,9 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
 # Standalone page execution
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__" or True:
+from core.page_utils import is_standalone_page
+
+if is_standalone_page():
     from core.page_utils import get_results_for_page, no_results_message
     from core.taxonomy_loader import load_taxonomy
     _results = get_results_for_page()
