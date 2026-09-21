@@ -275,15 +275,20 @@ def discover_pdfs(folder: str | Path, recursive: bool = False) -> List[Path]:
         logger.warning("PDF folder path is not a directory: %s", folder)
         return []
 
-    pattern = "**/*.pdf" if recursive else "*.pdf"
-    all_pdfs = folder.glob(pattern)
+    # Match the extension case-INSENSITIVELY. glob("*.pdf") is case-sensitive
+    # on Linux, so a corpus of FILE.PDF documents silently looked empty here
+    # while the folder counter (which lowercases the suffix) reported them.
+    candidates = folder.rglob("*") if recursive else folder.iterdir()
 
     # Filter out macOS resource fork files (._filename.pdf) and other
     # hidden files — these are created when zipping on macOS and are
     # not real PDFs.
     pdfs = sorted(
-        p for p in all_pdfs
-        if not p.name.startswith("._") and not p.name.startswith(".")
+        p for p in candidates
+        if p.is_file()
+        and p.suffix.lower() == ".pdf"
+        and not p.name.startswith("._")
+        and not p.name.startswith(".")
     )
     logger.info("Discovered %d PDF(s) in %s (recursive=%s)", len(pdfs), folder, recursive)
     return pdfs
@@ -310,7 +315,10 @@ def stage_upload(filename: str, file_bytes: bytes) -> Path:
 
 def list_staged_uploads() -> List[str]:
     """Return filenames of all PDFs in the upload staging area."""
-    return sorted(p.name for p in UPLOADS_DIR.glob("*.pdf"))
+    return sorted(
+        p.name for p in UPLOADS_DIR.iterdir()
+        if p.is_file() and p.suffix.lower() == ".pdf"
+    )
 
 
 def read_staged_upload(filename: str) -> Optional[bytes]:
@@ -321,7 +329,10 @@ def read_staged_upload(filename: str) -> Optional[bytes]:
 
 def clear_staged_uploads() -> int:
     """Delete all staged PDFs. Returns number deleted."""
-    files = list(UPLOADS_DIR.glob("*.pdf"))
+    files = [
+        p for p in UPLOADS_DIR.iterdir()
+        if p.is_file() and p.suffix.lower() == ".pdf"
+    ]
     for f in files:
         f.unlink(missing_ok=True)
     logger.info("Staged uploads cleared: %d files", len(files))

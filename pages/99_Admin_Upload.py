@@ -72,7 +72,8 @@ except OSError as _e:
 # Load file list (excluding macOS resource fork files)
 # ---------------------------------------------------------------------------
 all_files = sorted(
-    p for p in PDF_FOLDER.glob("*.pdf")
+    p for p in PDF_FOLDER.iterdir()
+    if p.is_file() and p.suffix.lower() == ".pdf"
     if not p.name.startswith("._") and not p.name.startswith(".")
 )
 
@@ -651,7 +652,8 @@ def _render_copy_from_folder(dest: Path) -> None:
         return
 
     available = sorted(
-        p for p in src.glob("*.pdf")
+        p for p in src.iterdir()
+        if p.is_file() and p.suffix.lower() == ".pdf"
         if p.is_file() and not p.name.startswith("._")
     )
     if not available:

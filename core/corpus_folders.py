@@ -131,12 +131,21 @@ def create_corpus_folder(raw_name: str) -> Path:
 
 
 def count_docs(folder: Path) -> int:
-    """Number of documents directly inside ``folder`` (non-recursive)."""
+    """Number of documents directly inside ``folder`` (non-recursive).
+
+    Must stay consistent with ``cache_manager.discover_pdfs``: hidden files and
+    macOS resource forks (``._name.pdf``) are excluded, and the suffix is
+    compared case-insensitively. A mismatch here is not cosmetic -- the count
+    shown in the folder picker is what tells the user whether a corpus has any
+    documents in it at all.
+    """
     try:
         return sum(
             1
             for p in folder.iterdir()
-            if p.is_file() and p.suffix.lower() in DOC_SUFFIXES
+            if p.is_file()
+            and p.suffix.lower() in DOC_SUFFIXES
+            and not p.name.startswith(".")
         )
     except OSError:
         return 0
