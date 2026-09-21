@@ -178,7 +178,7 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
             file_name="eo_results_filtered.csv",
             mime="text/csv",
             key="download_filtered_table",
-            use_container_width=True,
+            width="stretch",
         )
     with dl_col2:
         st.download_button(
@@ -187,7 +187,7 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
             file_name="eo_results_all.csv",
             mime="text/csv",
             key="download_all_results",
-            use_container_width=True,
+            width="stretch",
         )
 
     st.divider()
@@ -385,7 +385,7 @@ def render_results_table(results: List[SearchResult], taxonomy: Dict[str, Any]):
         file_name=f"eo_results{quick_label}.csv",
         mime="text/csv",
         key="download_filtered_cards",
-        use_container_width=True,
+        width="stretch",
     )
 
 

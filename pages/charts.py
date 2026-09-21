@@ -124,7 +124,7 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 height=max(280, len(counts) * 28),
                 yaxis_title="", xaxis_title="Excerpts",
             )
-            st.plotly_chart(fig1, use_container_width=True)
+            st.plotly_chart(fig1, width="stretch")
         except Exception as e:
             st.error(f"Chart error: {e}")
 
@@ -148,7 +148,7 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
             )
             fig2.update_traces(textposition="outside", textinfo="percent+label")
             fig2.update_layout(margin=dict(l=10, r=10, t=10, b=10), showlegend=False)
-            st.plotly_chart(fig2, use_container_width=True)
+            st.plotly_chart(fig2, width="stretch")
         except Exception as e:
             st.error(f"Chart error: {e}")
 
@@ -178,7 +178,7 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
                        annotation_text=f"Weak ≥{weak_t}",
                        annotation_position="top left")
         fig3.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=320)
-        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig3, width="stretch")
     except Exception as e:
         st.error(f"Chart error: {e}")
 
@@ -224,7 +224,7 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 coloraxis_colorbar_title="Score",
             )
             fig4.update_xaxes(tickangle=-35)
-            st.plotly_chart(fig4, use_container_width=True)
+            st.plotly_chart(fig4, width="stretch")
         else:
             st.info("Not enough data for heatmap.")
     except Exception as e:
@@ -271,7 +271,7 @@ def render_charts(results: List[SearchResult], taxonomy: Dict[str, Any]):
             xaxis_title="", yaxis_title="Excerpts",
             legend=dict(orientation="h", yanchor="bottom", y=-0.6),
         )
-        st.plotly_chart(fig5, use_container_width=True)
+        st.plotly_chart(fig5, width="stretch")
     except Exception as e:
         st.error(f"Chart error: {e}")
 

@@ -773,7 +773,7 @@ else:
         col_a, col_b = st.columns(2)
 
         with col_a:
-            if st.button("⚙️ Build CSV", key="exp_csv_gen", use_container_width=True):
+            if st.button("⚙️ Build CSV", key="exp_csv_gen", width="stretch"):
                 with st.spinner("Building CSV…"):
                     st.session_state["_csv_data"] = to_csv_bytes(results)
                     st.session_state["_csv_fname"] = f"eo_evidence_{ts}.csv"
@@ -786,7 +786,7 @@ else:
                 )
 
         with col_b:
-            if st.button("⚙️ Build JSON", key="exp_json_gen", use_container_width=True):
+            if st.button("⚙️ Build JSON", key="exp_json_gen", width="stretch"):
                 with st.spinner("Building JSON…"):
                     st.session_state["_json_data"] = to_d3_json(results)
                     st.session_state["_json_fname"] = f"eo_policy_d3_{ts}.json"
@@ -810,7 +810,7 @@ else:
         with xcol1:
             st.markdown("**Excel Data Workbook** — all evidence + theme pivot")
             if st.button("⚙️ Build Excel Workbook", key="exp_xlsx_gen",
-                         use_container_width=True):
+                         width="stretch"):
                 with st.spinner("Building Excel workbook — please wait…"):
                     try:
                         _data = to_excel_bytes(results)
@@ -833,7 +833,7 @@ else:
             st.markdown("**Evidence Report (Excel)** — formatted, one sheet per doc")
             st.caption("⚠️ Slow for ≥ 50 docs. Use workbook for large corpora.")
             if st.button("⚙️ Build Report (Excel)", key="exp_report_xlsx_gen",
-                         use_container_width=True):
+                         width="stretch"):
                 with st.spinner("Building formatted report — may take 1–2 minutes…"):
                     try:
                         _data = to_excel_report_bytes(results)
@@ -857,7 +857,7 @@ else:
 
         with rcol1:
             st.markdown("**PDF Evidence Report**")
-            if st.button("⚙️ Build PDF", key="exp_pdf_gen", use_container_width=True):
+            if st.button("⚙️ Build PDF", key="exp_pdf_gen", width="stretch"):
                 with st.spinner("Building PDF…"):
                     try:
                         _data = to_pdf_report_bytes(results)
@@ -876,7 +876,7 @@ else:
 
         with rcol2:
             st.markdown("**Markdown Evidence Report**")
-            if st.button("⚙️ Build Markdown", key="exp_md_gen", use_container_width=True):
+            if st.button("⚙️ Build Markdown", key="exp_md_gen", width="stretch"):
                 with st.spinner("Building Markdown…"):
                     _data = to_markdown_report(results).encode("utf-8")
                     st.session_state["_md_data"] = _data

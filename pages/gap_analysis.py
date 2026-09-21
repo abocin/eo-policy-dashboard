@@ -215,7 +215,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
             margin=dict(l=10, r=10, t=10, b=10),
             xaxis_tickangle=-35,
         )
-        st.plotly_chart(fig_heat, use_container_width=True)
+        st.plotly_chart(fig_heat, width="stretch")
 
         # ---- Gap themes list -----------------------------------------------
         st.divider()
@@ -259,7 +259,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
             labels={"Policies Covering": "# Policies (MODERATE+)"},
         )
         fig_bar.update_layout(height=400, margin=dict(l=10, r=10, t=10, b=10))
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_bar, width="stretch")
 
         # ---- Per-doc gap table ---------------------------------------------
         st.divider()
@@ -286,7 +286,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
             df_doc = pd.DataFrame(rows).sort_values("Max Score", ascending=False)
             st.dataframe(
                 df_doc,
-                use_container_width=True,
+                width="stretch",
                 column_config={
                     "Max Score": st.column_config.ProgressColumn(
                         "Max Score", min_value=0, max_value=1, format="%.3f"
@@ -356,7 +356,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                     title="Maturity",
                 ),
             )
-            st.plotly_chart(fig_mat, use_container_width=True)
+            st.plotly_chart(fig_mat, width="stretch")
 
             # ---- Maturity distribution pie --------------------------------
             st.divider()
@@ -372,14 +372,14 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 )
                 fig_pie.update_traces(textposition="outside", textinfo="percent+label")
                 fig_pie.update_layout(showlegend=False, margin=dict(l=5, r=5, t=5, b=5))
-                st.plotly_chart(fig_pie, use_container_width=True)
+                st.plotly_chart(fig_pie, width="stretch")
 
             with col_tbl:
                 st.markdown("#### Detail table")
                 st.dataframe(
                     df_mat[["Document", "Level", "Label", "Evidence",
                              "Funded", "Monitored", "Notes"]],
-                    use_container_width=True,
+                    width="stretch",
                     height=350,
                 )
 
@@ -438,7 +438,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                     showlegend=False, margin=dict(l=10, r=10, t=10, b=10),
                     height=320,
                 )
-                st.plotly_chart(fig_comm, use_container_width=True)
+                st.plotly_chart(fig_comm, width="stretch")
 
             with col_b:
                 st.markdown("#### Avg commitment score per theme")
@@ -460,7 +460,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 fig_tcomm.update_layout(
                     margin=dict(l=10, r=10, t=10, b=10), height=320
                 )
-                st.plotly_chart(fig_tcomm, use_container_width=True)
+                st.plotly_chart(fig_tcomm, width="stretch")
 
             # ---- Per-doc commitment breakdown stacked bar  (TOP-N) -----------
             st.divider()
@@ -513,7 +513,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 margin=dict(l=10, r=10, t=10, b=10),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
-            st.plotly_chart(fig_stack, use_container_width=True)
+            st.plotly_chart(fig_stack, width="stretch")
 
     # =======================================================================
     # TAB 4 — Lifecycle Stage
@@ -547,7 +547,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 fig_lc_pie.update_layout(
                     showlegend=True, margin=dict(l=5, r=5, t=5, b=5)
                 )
-                st.plotly_chart(fig_lc_pie, use_container_width=True)
+                st.plotly_chart(fig_lc_pie, width="stretch")
 
             with col_bar:
                 st.markdown("#### Excerpts per stage (ordered by lifecycle)")
@@ -564,7 +564,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                     showlegend=False, margin=dict(l=10, r=10, t=10, b=10),
                     height=320,
                 )
-                st.plotly_chart(fig_lc_bar, use_container_width=True)
+                st.plotly_chart(fig_lc_bar, width="stretch")
 
             # ---- Per-doc lifecycle heatmap ---------------------------------
             st.divider()
@@ -599,7 +599,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 margin=dict(l=10, r=10, t=10, b=10),
                 xaxis_tickangle=-25,
             )
-            st.plotly_chart(fig_lc_heat, use_container_width=True)
+            st.plotly_chart(fig_lc_heat, width="stretch")
 
             # ---- Stage × Theme heatmap ------------------------------------
             st.divider()
@@ -628,7 +628,7 @@ def render_gap_analysis(results: List[SearchResult], taxonomy: Dict[str, Any]):
                 margin=dict(l=10, r=10, t=10, b=10),
                 xaxis_tickangle=-25,
             )
-            st.plotly_chart(fig_tl, use_container_width=True)
+            st.plotly_chart(fig_tl, width="stretch")
 
 
 # ---------------------------------------------------------------------------

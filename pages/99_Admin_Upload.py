@@ -104,9 +104,9 @@ with tab_manage:
 
         col_a, col_b, col_c = st.columns([1, 1, 4])
         with col_a:
-            st.button("Select all", use_container_width=True, on_click=_select_all)
+            st.button("Select all", width="stretch", on_click=_select_all)
         with col_b:
-            st.button("Deselect all", use_container_width=True, on_click=_deselect_all)
+            st.button("Deselect all", width="stretch", on_click=_deselect_all)
 
         # ---- File list with checkboxes ------------------------------------
         to_delete = []
@@ -131,7 +131,7 @@ with tab_manage:
             if st.button(
                 f"🗑️ Delete {len(to_delete)} selected file(s)",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
             ):
                 deleted = []
                 errors = []
@@ -179,7 +179,7 @@ def _render_fetch_from_url(dest: Path) -> None:
     if not st.button(
         f"🌐 Download {len(urls)} file(s)",
         disabled=not urls, type="primary",
-        use_container_width=True, key="fetch_go",
+        width="stretch", key="fetch_go",
     ):
         return
 
@@ -302,11 +302,11 @@ def _render_copy_from_folder(dest: Path) -> None:
     c1, c2 = st.columns(2)
     go_sel = c1.button(
         f"📥 {'Move' if move else 'Copy'} {len(picked)} selected",
-        disabled=not picked, use_container_width=True, key="copy_go_sel",
+        disabled=not picked, width="stretch", key="copy_go_sel",
     )
     go_all = c2.button(
         f"📥 {'Move' if move else 'Copy'} all {len(available)}",
-        use_container_width=True, key="copy_go_all",
+        width="stretch", key="copy_go_all",
     )
     if not (go_sel or go_all):
         return
@@ -360,7 +360,7 @@ with tab_upload:
         if st.button(
             f"⬆️ Save {len(uploaded)} file(s) to volume",
             type="primary",
-            use_container_width=True,
+            width="stretch",
         ):
             saved = []
             errors = []
