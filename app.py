@@ -179,6 +179,34 @@ with st.sidebar:
         ),
     )
 
+    # Data folder structure (under the /data volume mount on Railway):
+    #   /data/pdfs     — default corpus, used unless PDF_FOLDER says otherwise.
+    #   /data/destine  — a separate, isolated corpus for the "destine" analysis
+    #                     workflow. Keeping it in its own folder lets us run
+    #                     LLM analysis on just those documents without mixing
+    #                     them in with (or re-processing) /data/pdfs.
+    # "Custom path" falls back to the PDF_FOLDER env var / manual text input,
+    # preserving the original behaviour.
+    folder_choice = st.selectbox(
+        "Data folder",
+        ["pdfs (default)", "destine", "Custom path"],
+        help=(
+            "Choose which volume subfolder to read PDFs from.\n\n"
+            "**pdfs (default)** — `/data/pdfs`, the primary corpus.\n\n"
+            "**destine** — `/data/destine`, a separate corpus kept isolated "
+            "from `/data/pdfs` for independent analysis.\n\n"
+            "**Custom path** — enter any folder path manually (uses "
+            "`PDF_FOLDER` env var if set)."
+        ),
+    )
+
+    if folder_choice == "pdfs (default)":
+        _default_folder = "/data/pdfs"
+    elif folder_choice == "destine":
+        _default_folder = "/data/destine"
+    else:
+        _default_folder = os.environ.get("PDF_FOLDER", "")
+
     uploaded_files = []
     folder_path_input = ""
     folder_pdfs: List[Path] = []
@@ -190,6 +218,7 @@ with st.sidebar:
             "PDF folder path",
             value=_default_folder,
             placeholder="/data/pdfs",
+            disabled=folder_choice != "Custom path",
             help=(
                 "Absolute path to a directory of PDFs on the server.\n"
                 "On Railway: mount a volume at `/data`, copy PDFs to `/data/pdfs`, "
