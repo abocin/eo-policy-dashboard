@@ -72,6 +72,26 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 @st.cache_data(show_spinner=False)
+@st.cache_data(ttl=30, show_spinner=False)
+def _discover_pdfs_cached(folder: str, recursive: bool) -> List[Path]:
+    """Cached wrapper around discover_pdfs.
+
+    The sidebar re-ran this on every interaction, re-scanning 100+ files on the
+    Railway volume each time. That made every rerun slow enough that a click on
+    a file_uploader could land mid-rerun, and Streamlit would replace the input
+    element before the browser opened its file dialog -- the widget appeared to
+    "flicker" and no picker appeared. A short TTL keeps the listing fresh while
+    making reruns cheap.
+    """
+    return discover_pdfs(folder, recursive=recursive)
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def _cache_stats_cached() -> Dict[str, Any]:
+    """Cached wrapper around cache_stats (stats every embedding file)."""
+    return cache_stats()
+
+
 def _load_taxonomy_cached(yaml_bytes: Optional[bytes]) -> Dict[str, Any]:
     """Load taxonomy from YAML bytes, or fall back to built-in file.
 
@@ -279,7 +299,9 @@ with st.sidebar:
                 corpus_warning = "not_dir"
             else:
                 try:
-                    folder_pdfs = discover_pdfs(_fpath, recursive=recursive)
+                    folder_pdfs = _discover_pdfs_cached(
+                        str(_fpath), recursive
+                    )
                     if not folder_pdfs:
                         st.warning("⚠️ No PDF files found in that folder.")
                         corpus_warning = "empty"
@@ -444,6 +466,8 @@ with st.sidebar:
     # ---- Reset button ------------------------------------------------------
     if st.button("🔄 Clear & Reset", width="stretch"):
         clear_session_cache()
+        _cache_stats_cached.clear()
+        _discover_pdfs_cached.clear()
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
@@ -486,7 +510,7 @@ with st.sidebar:
     st.divider()
     st.markdown("**Embedding cache**")
     try:
-        _cs = cache_stats()
+        _cs = _cache_stats_cached()
         _persist_icon = "🟢" if _cs["is_persistent"] else "🟡"
         _persist_label = "Persistent (Railway volume)" if _cs["is_persistent"] else "Ephemeral (local .cache)"
         st.caption(
@@ -498,6 +522,8 @@ with st.sidebar:
         if _cs["cached_files"] > 0:
             if st.button("🗑️ Clear embedding cache", width="stretch"):
                 n = clear_disk_cache()
+                _cache_stats_cached.clear()
+                _discover_pdfs_cached.clear()
                 st.success(f"Cleared {n} cached embedding file(s).")
                 st.rerun()
     except Exception as _e:

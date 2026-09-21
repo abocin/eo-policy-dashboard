@@ -74,8 +74,8 @@ st.divider()
 # TAB 1 — Manage (list + delete)
 # TAB 2 — Upload
 # ---------------------------------------------------------------------------
-tab_manage, tab_upload, tab_copy = st.tabs(
-    ["🗑️ Manage Files", "⬆️ Upload Files", "📥 Copy from folder"]
+tab_manage, tab_upload, tab_copy, tab_url = st.tabs(
+    ["🗑️ Manage Files", "⬆️ Upload Files", "📥 Copy from folder", "🌐 Fetch from URL"]
 )
 
 # ===========================================================================
@@ -151,6 +151,102 @@ with tab_manage:
                 st.rerun()
         else:
             st.info("No files selected.")
+
+# ===========================================================================
+# Fetch from URL — server-side download, no file picker involved
+# ===========================================================================
+def _render_fetch_from_url(dest: Path) -> None:
+    """Download PDFs straight onto the volume from public URLs."""
+    import re as _re
+    import urllib.parse as _urlparse
+
+    import requests  # bundled with streamlit
+
+    st.markdown(
+        f"Paste PDF links (one per line). They are downloaded by the server "
+        f"into `{dest}` — your browser is not involved, so no file dialog is "
+        "needed."
+    )
+    raw = st.text_area(
+        "PDF URLs",
+        height=150,
+        key="fetch_urls",
+        placeholder="https://example.org/strategy.pdf\nhttps://example.org/roadmap.pdf",
+    )
+    urls = [u.strip() for u in raw.splitlines() if u.strip()]
+    if urls:
+        st.caption(f"{len(urls)} URL(s) ready.")
+    if not st.button(
+        f"🌐 Download {len(urls)} file(s)",
+        disabled=not urls, type="primary",
+        use_container_width=True, key="fetch_go",
+    ):
+        return
+
+    prog = st.progress(0.0)
+    ok, bad = [], []
+    for i, url in enumerate(urls, 1):
+        prog.progress(i / len(urls), text=f"{i}/{len(urls)} — {url[:60]}")
+        try:
+            # Derive a safe filename from the URL path, falling back to a
+            # counter. Always force a .pdf suffix.
+            _parts = [
+                _urlparse.unquote(s)
+                for s in _urlparse.urlparse(url).path.split("/") if s
+            ]
+            name = _parts[-1] if _parts else ""
+            # Many document portals end the URL in a generic segment such as
+            # ".../ST-11321-2023-INIT/en/pdf", which would yield "pdf.pdf".
+            # Walk back to the last segment that actually identifies the file.
+            if Path(name).stem.lower() in ("", "pdf", "download", "file", "en", "view"):
+                for _seg in reversed(_parts[:-1]):
+                    if Path(_seg).stem.lower() not in ("", "pdf", "download", "file", "en", "view"):
+                        name = _seg
+                        break
+            name = _re.sub(r'[^\w\-. ]', "_", name).strip() or f"download_{i}"
+            if not name.lower().endswith(".pdf"):
+                name += ".pdf"
+
+            target = dest / name
+            if target.exists():
+                bad.append(f"{name}: already present, skipped")
+                continue
+
+            resp = requests.get(url, timeout=120, stream=True, headers={
+                "User-Agent": "Mozilla/5.0 (compatible; eo-policy-dashboard)"
+            })
+            resp.raise_for_status()
+
+            ctype = resp.headers.get("Content-Type", "")
+            tmp = target.with_suffix(".part")
+            size = 0
+            with open(tmp, "wb") as fh:
+                for chunk in resp.iter_content(65536):
+                    fh.write(chunk)
+                    size += len(chunk)
+
+            # Validate it really is a PDF before keeping it (many bad links
+            # return an HTML error page with status 200).
+            with open(tmp, "rb") as fh:
+                magic = fh.read(5)
+            if magic != b"%PDF-":
+                tmp.unlink(missing_ok=True)
+                bad.append(f"{name}: not a PDF (Content-Type: {ctype or 'unknown'})")
+                continue
+
+            tmp.rename(target)
+            ok.append(f"{name} ({size / 1_048_576:.1f} MB)")
+        except Exception as exc:
+            bad.append(f"{url[:60]}: {exc}")
+
+    prog.empty()
+    if ok:
+        st.success(f"Downloaded {len(ok)} file(s):\n" + "\n".join(f"• {n}" for n in ok))
+    if bad:
+        st.warning("Not downloaded:\n" + "\n".join(f"• {b}" for b in bad))
+    if ok:
+        st.rerun()
+
 
 # ===========================================================================
 # Copy from another folder — needs no browser upload at all
@@ -298,3 +394,10 @@ with tab_upload:
 # ===========================================================================
 with tab_copy:
     _render_copy_from_folder(PDF_FOLDER)
+
+
+# ===========================================================================
+# TAB 4 — Fetch from URL
+# ===========================================================================
+with tab_url:
+    _render_fetch_from_url(PDF_FOLDER)
