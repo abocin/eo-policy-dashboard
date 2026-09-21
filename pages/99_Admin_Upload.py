@@ -74,7 +74,9 @@ st.divider()
 # TAB 1 — Manage (list + delete)
 # TAB 2 — Upload
 # ---------------------------------------------------------------------------
-tab_manage, tab_upload = st.tabs(["🗑️ Manage Files", "⬆️ Upload Files"])
+tab_manage, tab_upload, tab_copy = st.tabs(
+    ["🗑️ Manage Files", "⬆️ Upload Files", "📥 Copy from folder"]
+)
 
 # ===========================================================================
 # TAB 1 — Manage Files
@@ -151,12 +153,104 @@ with tab_manage:
             st.info("No files selected.")
 
 # ===========================================================================
+# Copy from another folder — needs no browser upload at all
+# ===========================================================================
+def _render_copy_from_folder(dest: Path) -> None:
+    """Copy PDFs into `dest` from any other server-side folder.
+
+    Browser uploads are the fragile path (size limits, timeouts, picker
+    quirks). Everything already on the volume can be moved server-side.
+    """
+    import shutil
+
+    st.markdown(
+        f"Copy PDFs that are already on the server into `{dest}` — "
+        "no browser upload involved."
+    )
+
+    src_options = [p for p in (Path("/data/pdfs"), Path("/data/destine")) if p != dest]
+    src_label = st.selectbox(
+        "Source folder",
+        [str(p) for p in src_options] + ["Other path…"],
+        key="copy_src_choice",
+    )
+    src = Path(
+        st.text_input("Source path", value="", key="copy_src_custom")
+        if src_label == "Other path…" else src_label
+    )
+
+    if not src or str(src) in ("", "."):
+        st.caption("Enter a source path to continue.")
+        return
+    if not src.is_dir():
+        st.warning(f"Not a directory: `{src}`")
+        return
+
+    available = sorted(
+        p for p in src.glob("*.pdf")
+        if p.is_file() and not p.name.startswith("._")
+    )
+    if not available:
+        st.info(f"No PDFs found in `{src}`.")
+        return
+
+    picked = st.multiselect(
+        f"Files in {src} ({len(available)} available)",
+        [p.name for p in available],
+        key="copy_pick",
+        help="Leave empty and use 'Copy all' below to take everything.",
+    )
+    move = st.checkbox(
+        "Move instead of copy (removes from source)", key="copy_move"
+    )
+    c1, c2 = st.columns(2)
+    go_sel = c1.button(
+        f"📥 {'Move' if move else 'Copy'} {len(picked)} selected",
+        disabled=not picked, use_container_width=True, key="copy_go_sel",
+    )
+    go_all = c2.button(
+        f"📥 {'Move' if move else 'Copy'} all {len(available)}",
+        use_container_width=True, key="copy_go_all",
+    )
+    if not (go_sel or go_all):
+        return
+
+    names = picked if go_sel else [p.name for p in available]
+    done, failed, skipped = [], [], []
+    for name in names:
+        target = dest / name
+        if target.exists():
+            skipped.append(name)
+            continue
+        try:
+            shutil.move(str(src / name), str(target)) if move \
+                else shutil.copy2(str(src / name), str(target))
+            done.append(name)
+        except OSError as exc:
+            failed.append(f"{name}: {exc}")
+
+    if done:
+        st.success(f"{'Moved' if move else 'Copied'} {len(done)} file(s) to `{dest}`.")
+    if skipped:
+        st.info(f"Skipped {len(skipped)} already present: " + ", ".join(skipped[:8]))
+    if failed:
+        st.error("Failed:\n" + "\n".join(failed))
+    if done:
+        st.rerun()
+
+
+# ===========================================================================
 # TAB 2 — Upload Files
 # ===========================================================================
 with tab_upload:
     st.markdown(
         "Upload one or more PDF files. They will be saved directly to "
         f"`{PDF_FOLDER}`."
+    )
+    st.caption(
+        "Use the **⬆ Upload** button below to open your file browser, or drag "
+        "files straight onto it. Streamlit's uploader is a compact button in "
+        "recent versions — it is not a large drop-zone."
     )
 
     uploaded = st.file_uploader(
@@ -191,4 +285,16 @@ with tab_upload:
                 st.error("Errors:\n" + "\n".join(errors))
             st.rerun()
     else:
-        st.info("Drag and drop PDFs here, or click to browse.")
+        # NOTE: do not render a fake "drag and drop / click to browse" banner
+        # here. Streamlit >=1.6x renders the uploader as a small "Upload"
+        # button rather than the old large dashed drop-zone, so a separate
+        # banner looks like the drop-zone but is inert -- users click it,
+        # nothing happens, and the upload appears broken.
+        st.caption("No files selected yet.")
+
+
+# ===========================================================================
+# TAB 3 — Copy from folder
+# ===========================================================================
+with tab_copy:
+    _render_copy_from_folder(PDF_FOLDER)
