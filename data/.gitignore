@@ -1,0 +1,4 @@
+# Keep the folder in git, but never commit local corpora.
+*
+!.gitignore
+!README.md

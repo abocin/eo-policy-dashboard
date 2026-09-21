@@ -27,8 +27,11 @@ No API calls. Pure regex matching.
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -109,25 +112,70 @@ DEFAULT_STAGES: List[Dict] = [
 ]
 
 
+#: Accepted spellings for a stage's display name. Custom taxonomies written
+#: against the `themes:` section naturally use `label:`, which is the house
+#: style, so requiring `stage:` here crashed the whole pipeline on a valid file.
+_STAGE_NAME_KEYS = ("stage", "label", "name", "title")
+
+
+def _stage_name(entry: Dict) -> str | None:
+    """Return a stage's display name, accepting any known key spelling."""
+    for key in _STAGE_NAME_KEYS:
+        val = entry.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    return None
+
+
 def _build_patterns(stages: List[Dict]) -> List[Tuple[str, re.Pattern]]:
-    """Compile regex patterns for each stage."""
-    compiled = []
-    for s in stages:
-        kws = [re.escape(k) for k in s["keywords"]]
-        pattern = re.compile(r"\b(" + "|".join(kws) + r")\w*", re.IGNORECASE)
-        compiled.append((s["stage"], pattern))
+    """Compile a keyword regex per lifecycle stage.
+
+    Skips malformed entries with a warning rather than raising: this runs at the
+    very END of the pipeline, after all the (paid) embedding calls, so a typo in
+    a taxonomy file must not discard an entire completed analysis.
+    """
+    compiled: List[Tuple[str, re.Pattern]] = []
+
+    for i, s in enumerate(stages):
+        if not isinstance(s, dict):
+            logger.warning("Lifecycle stage #%d is not a mapping — skipped.", i + 1)
+            continue
+
+        name = _stage_name(s)
+        if not name:
+            logger.warning(
+                "Lifecycle stage #%d has no name (expected one of %s) — skipped.",
+                i + 1, ", ".join(_STAGE_NAME_KEYS),
+            )
+            continue
+
+        kws = [str(k) for k in (s.get("keywords") or []) if str(k).strip()]
+        if not kws:
+            logger.warning("Lifecycle stage %r has no keywords — skipped.", name)
+            continue
+
+        pattern = re.compile(
+            r"\b(" + "|".join(re.escape(k) for k in kws) + r")\w*", re.IGNORECASE
+        )
+        compiled.append((name, pattern))
+
     return compiled
 
 
 def tag_lifecycle_stage(
     text: str,
     patterns: List[Tuple[str, re.Pattern]],
+    default: str = "",
 ) -> str:
     """
     Return the lifecycle stage label with the most keyword matches.
-    Falls back to 'Skills' (most common) if nothing matches.
+
+    With no match, falls back to ``default`` — the caller passes the FIRST stage
+    of the active taxonomy. Previously this was hard-coded to "Skills", which
+    silently mislabelled every unmatched excerpt with a stage that does not
+    exist in a custom taxonomy.
     """
-    best_stage = "Skills"
+    best_stage = default
     best_count = 0
 
     for stage_name, pattern in patterns:
@@ -150,10 +198,30 @@ def tag_lifecycle(results, taxonomy: dict) -> None:
     falls back to excerpt only.
     No API calls.
     """
-    lc_cfg = taxonomy.get("lifecycle", {})
-    stage_defs = lc_cfg.get("stages", DEFAULT_STAGES)
+    lc_cfg = taxonomy.get("lifecycle") or {}
+    if not isinstance(lc_cfg, dict):
+        logger.warning("taxonomy 'lifecycle' is not a mapping — using defaults.")
+        lc_cfg = {}
+
+    stage_defs = lc_cfg.get("stages")
+    if not isinstance(stage_defs, list) or not stage_defs:
+        stage_defs = DEFAULT_STAGES
+
     patterns = _build_patterns(stage_defs)
+    if not patterns:
+        logger.warning(
+            "No usable lifecycle stages in the taxonomy — falling back to the "
+            "%d built-in stages.", len(DEFAULT_STAGES),
+        )
+        patterns = _build_patterns(DEFAULT_STAGES)
+
+    # Unmatched excerpts get the first stage of whichever set is in use.
+    default_stage = patterns[0][0] if patterns else ""
+    logger.info(
+        "Lifecycle tagging with %d stage(s): %s",
+        len(patterns), ", ".join(n for n, _ in patterns),
+    )
 
     for r in results:
         text = getattr(r, "context", "") or r.excerpt
-        r.lifecycle_stage = tag_lifecycle_stage(text, patterns)
+        r.lifecycle_stage = tag_lifecycle_stage(text, patterns, default_stage)
