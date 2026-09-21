@@ -200,6 +200,16 @@ with st.sidebar:
         ),
     )
 
+    # The repo's ./data directory lives at /app/data and is NOT the Railway
+    # volume (mounted at /data), so committing data/destine/.gitkeep does not
+    # create the folder on the volume. Create both subfolders on first use so
+    # the selector never points at a missing path.
+    for _vol_sub in ("/data/pdfs", "/data/destine"):
+        try:
+            Path(_vol_sub).mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass  # /data not mounted (e.g. local dev) — harmless
+
     if folder_choice == "pdfs (default)":
         _default_folder = "/data/pdfs"
     elif folder_choice == "destine":
