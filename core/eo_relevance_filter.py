@@ -117,7 +117,18 @@ def score_eo_relevance(
         return
 
     # ---- Load reference sentences from taxonomy or fall back to defaults ---
-    eo_cfg = taxonomy.get("eo_relevance", {})
+    # Accept a domain-specific alias so a custom taxonomy can name this block
+    # after its own subject (e.g. 'destine_relevance') and still be honoured.
+    # Without this the block is silently ignored and scoring quietly falls back
+    # to the built-in EO reference sentences.
+    eo_cfg = {}
+    for _key in ("eo_relevance", "destine_relevance", "domain_relevance"):
+        _cand = taxonomy.get(_key)
+        if isinstance(_cand, dict) and _cand:
+            eo_cfg = _cand
+            if _key != "eo_relevance":
+                logger.info("Relevance config taken from '%s'", _key)
+            break
     ref_sentences: List[str] = eo_cfg.get("sentences", DEFAULT_REFERENCE_SENTENCES)
     if not ref_sentences:
         ref_sentences = DEFAULT_REFERENCE_SENTENCES
