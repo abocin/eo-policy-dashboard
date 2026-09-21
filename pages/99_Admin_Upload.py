@@ -179,6 +179,98 @@ with tab_manage:
             st.info("No files selected.")
 
 # ===========================================================================
+# Bulk import helpers
+# ===========================================================================
+#: Refuse absurd archives outright (zip-bomb guard).
+_MAX_UNCOMPRESSED = 4 * 1024 ** 3   # 4 GB total
+_MAX_RATIO = 200                    # compressed:uncompressed
+
+
+def _normalise_share_url(url: str) -> str:
+    """Turn common 'share page' links into direct-download links.
+
+    Google Drive and Dropbox share URLs return an HTML viewer page, not the
+    file, so downloading them verbatim saves a useless HTML blob. Rewrites
+    them to their direct-download equivalents; other URLs pass through.
+    """
+    import re as _re
+
+    m = _re.search(r"drive\.google\.com/(?:file/d/|open\?id=|uc\?id=)([\w-]{20,})", url)
+    if m:
+        return f"https://drive.google.com/uc?export=download&id={m.group(1)}"
+    if "dropbox.com" in url:
+        stripped = _re.sub(r"[?&]dl=[01]", "", url)
+        # decide the separator from the STRIPPED url -- removing '?dl=0' can
+        # leave no query string at all, in which case '&dl=1' is invalid.
+        return stripped + ("&" if "?" in stripped else "?") + "dl=1"
+    if "sharepoint.com" in url or "1drv.ms" in url:
+        return url + ("&" if "?" in url else "?") + "download=1"
+    return url
+
+
+def _extract_pdfs_from_zip(zip_path: Path, dest: Path) -> tuple[list[str], list[str]]:
+    """Extract every PDF inside ``zip_path`` into ``dest`` (flattened).
+
+    Returns ``(added, skipped)``. Hardened against the usual archive traps:
+    absolute/`..` member paths are never joined onto dest (only the basename is
+    used), non-PDF members are ignored, and oversized or absurdly compressed
+    archives are rejected before extraction.
+    """
+    import re as _re
+    import zipfile
+
+    added: list[str] = []
+    skipped: list[str] = []
+
+    with zipfile.ZipFile(zip_path) as zf:
+        infos = [i for i in zf.infolist() if not i.is_dir()]
+        total_unc = sum(i.file_size for i in infos)
+        total_comp = max(1, sum(i.compress_size for i in infos))
+        if total_unc > _MAX_UNCOMPRESSED:
+            raise ValueError(
+                f"Archive expands to {total_unc / 1024**3:.1f} GB — refusing."
+            )
+        if total_unc / total_comp > _MAX_RATIO:
+            raise ValueError("Archive compression ratio looks like a zip bomb — refusing.")
+
+        pdf_infos = [i for i in infos if i.filename.lower().endswith(".pdf")]
+        if not pdf_infos:
+            raise ValueError("No .pdf files found inside the archive.")
+
+        for info in pdf_infos:
+            # Use ONLY the basename: a member called '../../etc/x.pdf' or
+            # '/abs/x.pdf' must never write outside dest.
+            base = Path(info.filename.replace("\\", "/")).name
+            base = _re.sub(r"[^\w\-. ]", "_", base).strip() or "document.pdf"
+            if base.startswith("._"):      # macOS resource forks
+                skipped.append(f"{base}: macOS resource fork")
+                continue
+
+            target = dest / base
+            if target.exists():
+                skipped.append(f"{base}: already present")
+                continue
+
+            with zf.open(info) as src:
+                head = src.read(5)
+                if head != b"%PDF-":
+                    skipped.append(f"{base}: not a real PDF")
+                    continue
+                tmp = target.with_suffix(".part")
+                with open(tmp, "wb") as out:
+                    out.write(head)
+                    while True:
+                        chunk = src.read(1 << 20)
+                        if not chunk:
+                            break
+                        out.write(chunk)
+            tmp.rename(target)
+            added.append(f"{base} ({info.file_size / 1_048_576:.1f} MB)")
+
+    return added, skipped
+
+
+# ===========================================================================
 # Fetch from URL — server-side download, no file picker involved
 # ===========================================================================
 def _render_fetch_from_url(dest: Path) -> None:
@@ -189,12 +281,18 @@ def _render_fetch_from_url(dest: Path) -> None:
     import requests  # bundled with streamlit
 
     st.markdown(
-        f"Paste PDF links (one per line). They are downloaded by the server "
-        f"into `{dest}` — your browser is not involved, so no file dialog is "
-        "needed."
+        f"Paste links (one per line). The **server** downloads them into "
+        f"`{dest}` — your browser is not involved, so no file dialog is needed."
+    )
+    st.markdown(
+        "- A **`.zip` link** is the bulk path: every PDF inside is extracted "
+        "into this folder in one go.\n"
+        "- Google Drive, Dropbox and OneDrive/SharePoint share links are "
+        "converted to direct downloads automatically.\n"
+        "- Individual `.pdf` links also work."
     )
     raw = st.text_area(
-        "PDF URLs",
+        "Links (.zip or .pdf)",
         height=150,
         key="fetch_urls",
         placeholder="https://example.org/strategy.pdf\nhttps://example.org/roadmap.pdf",
@@ -203,7 +301,7 @@ def _render_fetch_from_url(dest: Path) -> None:
     if urls:
         st.caption(f"{len(urls)} URL(s) ready.")
     if not st.button(
-        f"🌐 Download {len(urls)} file(s)",
+        f"🌐 Import {len(urls)} link(s)",
         disabled=not urls, type="primary",
         width="stretch", key="fetch_go",
     ):
@@ -238,10 +336,30 @@ def _render_fetch_from_url(dest: Path) -> None:
                 bad.append(f"{name}: already present, skipped")
                 continue
 
-            resp = requests.get(url, timeout=120, stream=True, headers={
+            url = _normalise_share_url(url)
+            resp = requests.get(url, timeout=600, stream=True, headers={
                 "User-Agent": "Mozilla/5.0 (compatible; eo-policy-dashboard)"
             })
             resp.raise_for_status()
+
+            # ---- bulk archive branch ---------------------------------------
+            _is_zip = (
+                url.lower().split("?")[0].endswith(".zip")
+                or "zip" in resp.headers.get("Content-Type", "").lower()
+            )
+            if _is_zip:
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as _tf:
+                    for chunk in resp.iter_content(1 << 20):
+                        _tf.write(chunk)
+                    _zp = Path(_tf.name)
+                try:
+                    _added, _skipped = _extract_pdfs_from_zip(_zp, dest)
+                    ok.extend(_added)
+                    bad.extend(_skipped)
+                finally:
+                    _zp.unlink(missing_ok=True)
+                continue
 
             ctype = resp.headers.get("Content-Type", "")
             tmp = target.with_suffix(".part")
